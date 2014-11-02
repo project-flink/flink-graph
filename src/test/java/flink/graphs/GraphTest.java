@@ -209,4 +209,202 @@ public class GraphTest implements Serializable{
 
     }
 
+    @Test
+    public void testInDegree() throws Exception {
+        Integer desiredVertex = 3;
+        List<Tuple2<Integer, Integer>> data = new ArrayList<>();
+        graph.getVertices().output(new LocalCollectionOutputFormat(data));
+        env.execute();
+
+        Vertex vertex = new Vertex(data.get(desiredVertex).f0, data.get(desiredVertex).f1);
+        DataSet<Integer> result =  vertex.inDegree(graph);
+
+        List<Integer> resultedData = new ArrayList<>();
+        result.output(new LocalCollectionOutputFormat(resultedData));
+        env.execute();
+
+        assertEquals("Test inDegree", new Integer(2), resultedData.get(0));
+    }
+
+    /**
+     * test the inDegree function for a node that has no ingoing edges
+     * @throws Exception
+     */
+    @Test
+    public void testInDegreeNoIngoingEdge() throws Exception {
+        Integer desiredVertex = 0;
+        List<Tuple2<Integer, Integer>> data = new ArrayList<>();
+        graph.getVertices().output(new LocalCollectionOutputFormat(data));
+        env.execute();
+
+        Vertex vertex = new Vertex(data.get(desiredVertex).f0, data.get(desiredVertex).f1);
+        DataSet<Integer> result =  vertex.inDegree(graph);
+
+        List<Integer> resultedData = new ArrayList<>();
+        result.output(new LocalCollectionOutputFormat(resultedData));
+        env.execute();
+
+        assertEquals("Test inDegree no ingoing edge", new Integer(0), resultedData.get(0));
+    }
+
+    @Test
+    public void testOutDegree() throws Exception {
+        Integer desiredVertex = 1;
+        List<Tuple2<Integer, Integer>> data = new ArrayList<>();
+        graph.getVertices().output(new LocalCollectionOutputFormat(data));
+        env.execute();
+
+        Vertex vertex = new Vertex(data.get(desiredVertex).f0, data.get(desiredVertex).f1);
+        DataSet<Integer> result =  vertex.outDegree(graph);
+
+        List<Integer> resultedData = new ArrayList<>();
+        result.output(new LocalCollectionOutputFormat(resultedData));
+        env.execute();
+
+        assertEquals("Test outDegree", new Integer(2), resultedData.get(0));
+    }
+
+    /**
+     * test the outDegree function for a node that has no outgoing edges
+     * @throws Exception
+     */
+    @Test
+    public void testOutDegreeNoOutgoingEdge() throws Exception {
+        Integer desiredVertex = 2;
+        List<Tuple2<Integer, Integer>> data = new ArrayList<>();
+        graph.getVertices().output(new LocalCollectionOutputFormat(data));
+        env.execute();
+
+        Vertex vertex = new Vertex(data.get(desiredVertex).f0, data.get(desiredVertex).f1);
+        DataSet<Integer> result =  vertex.outDegree(graph);
+
+        List<Integer> resultedData = new ArrayList<>();
+        result.output(new LocalCollectionOutputFormat(resultedData));
+        env.execute();
+
+        assertEquals("Test outDegree no outgoing edge", new Integer(0), resultedData.get(0));
+    }
+
+    @Test
+    public void testDegree() throws Exception {
+        Integer desiredVertex = 0;
+        List<Tuple2<Integer, Integer>> data = new ArrayList<>();
+        graph.getVertices().output(new LocalCollectionOutputFormat(data));
+        env.execute();
+
+        Vertex vertex = new Vertex(data.get(desiredVertex).f0, data.get(desiredVertex).f1);
+        DataSet<Integer> result =  vertex.getDegree(graph);
+
+        List<Integer> resultedData = new ArrayList<>();
+        result.output(new LocalCollectionOutputFormat(resultedData));
+        env.execute();
+
+        assertEquals("Test degree", new Integer(2), resultedData.get(0));
+    }
+
+    @Test
+    public void testInNeighbours() throws Exception {
+        Integer desiredVertex = 3;
+        List<Tuple2<Integer, Integer>> data = new ArrayList<>();
+        graph.getVertices().output(new LocalCollectionOutputFormat(data));
+        env.execute();
+
+        Vertex vertex = new Vertex(data.get(desiredVertex).f0, data.get(desiredVertex).f1);
+        DataSet<Integer> result =  vertex.getInNeighbors(graph);
+
+        List<Integer> resultedData = new ArrayList<>();
+        result.output(new LocalCollectionOutputFormat(resultedData));
+        env.execute();
+
+        List<Integer> listExpected = new ArrayList<>();
+        listExpected.add(1); listExpected.add(0);
+
+        assertEquals("Test neighbours", listExpected, resultedData);
+    }
+
+    /**
+     * test the inNeighbours function for a node that has no ingoing edges
+     * @throws Exception
+     */
+    @Test
+    public void testInNeighboursNoIngoingEdges() throws Exception {
+        Integer desiredVertex = 0;
+        List<Tuple2<Integer, Integer>> data = new ArrayList<>();
+        graph.getVertices().output(new LocalCollectionOutputFormat(data));
+        env.execute();
+
+        Vertex vertex = new Vertex(data.get(desiredVertex).f0, data.get(desiredVertex).f1);
+        DataSet<Integer> result =  vertex.getInNeighbors(graph);
+
+        List<Integer> resultedData = new ArrayList<>();
+        result.output(new LocalCollectionOutputFormat(resultedData));
+        env.execute();
+
+        List<Integer> listExpected = new ArrayList<>();
+
+        assertEquals("Test neighbours", listExpected, resultedData);
+    }
+
+    @Test
+    public void testOutNeighbours() throws Exception {
+        Integer desiredVertex = 1;
+        List<Tuple2<Integer, Integer>> data = new ArrayList<>();
+        graph.getVertices().output(new LocalCollectionOutputFormat(data));
+        env.execute();
+
+        Vertex vertex = new Vertex(data.get(desiredVertex).f0, data.get(desiredVertex).f1);
+        DataSet<Integer> result =  vertex.getOutNeighbors(graph);
+
+        List<Integer> resultedData = new ArrayList<>();
+        result.output(new LocalCollectionOutputFormat(resultedData));
+        env.execute();
+
+        List<Integer> listExpected = new ArrayList<>();
+        listExpected.add(3); listExpected.add(2);
+
+        assertEquals("Test neighbours", listExpected, resultedData);
+    }
+
+    /**
+     * test the inNeighbours function for a node that has no outgoing edges
+     * @throws Exception
+     */
+    @Test
+    public void testInNeighboursNoOutgoingEdges() throws Exception {
+        Integer desiredVertex = 2;
+        List<Tuple2<Integer, Integer>> data = new ArrayList<>();
+        graph.getVertices().output(new LocalCollectionOutputFormat(data));
+        env.execute();
+
+        Vertex vertex = new Vertex(data.get(desiredVertex).f0, data.get(desiredVertex).f1);
+        DataSet<Integer> result =  vertex.getOutNeighbors(graph);
+
+        List<Integer> resultedData = new ArrayList<>();
+        result.output(new LocalCollectionOutputFormat(resultedData));
+        env.execute();
+
+        List<Integer> listExpected = new ArrayList<>();
+
+        assertEquals("Test neighbours", listExpected, resultedData);
+    }
+
+    @Test
+    public void testNeighbours() throws Exception {
+        Integer desiredVertex = 1;
+        List<Tuple2<Integer, Integer>> data = new ArrayList<>();
+        graph.getVertices().output(new LocalCollectionOutputFormat(data));
+        env.execute();
+
+        Vertex vertex = new Vertex(data.get(desiredVertex).f0, data.get(desiredVertex).f1);
+        DataSet<Integer> result =  vertex.getAllNeighbors(graph);
+
+        List<Integer> resultedData = new ArrayList<>();
+        result.output(new LocalCollectionOutputFormat(resultedData));
+        env.execute();
+
+        List<Integer> listExpected = new ArrayList<>();
+        listExpected.add(0); listExpected.add(3); listExpected.add(2);
+
+        assertEquals("Test neighbours", listExpected, resultedData);
+    }
 }
