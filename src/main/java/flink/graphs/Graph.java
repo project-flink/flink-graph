@@ -32,6 +32,7 @@ import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.util.Collector;
 
 import java.io.Serializable;
+import java.util.*;
 
 
 @SuppressWarnings("serial")
@@ -39,7 +40,6 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 	EV extends Serializable> implements Serializable{
 
 	private final DataSet<Tuple2<K, VV>> vertices;
-
 	private final DataSet<Tuple3<K, K, EV>> edges;
 
 	/** a graph is directed by default */
@@ -87,6 +87,29 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 		public Tuple2<K, VV> map(Tuple2<K, VV> value) throws Exception {
 			return new Tuple2<K, VV>(value.f0, innerMapper.map(value.f1));
 		}    	
+    }
+
+    /**
+     * Apply a function to the attribute of each Tuple3 in the graph
+     * @param mapper A function that transforms the attribute of each Tuple3
+     * @return A DataSet of Tuple3 which contains the new values of all edges
+     */
+    public <EV2 extends Serializable> DataSet<Tuple3<K, K, EV2>> mapEdges(final MapFunction<EV, EV2> mapper) {
+        return edges.map(new ApplyMapperToEdge<K, EV, EV2>(mapper));
+    }
+
+    private class ApplyMapperToEdge<K, EV, EV2> implements MapFunction
+            <Tuple3<K, K, EV>, Tuple3<K, K, EV2>> {
+
+        private MapFunction<EV, EV2> innerMapper;
+
+        public ApplyMapperToEdge(MapFunction<EV, EV2> theMapper) {
+            this.innerMapper = theMapper;
+        }
+
+        public Tuple3<K, K, EV2> map(Tuple3<K, K, EV> value) throws Exception {
+            return new Tuple3(value.f0, value.f1 ,innerMapper.map(value.f2));
+        }
     }
 
     /**
@@ -331,5 +354,93 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 
 		return Graph.create(vertices, edges);
 	}
+
+    /**
+     * Creates a graph from the given vertex and edge collections
+     * @param env
+     * @param v the collection of vertices
+     * @param e the collection of edges
+     * @return a new graph formed from the set of edges and vertices
+     */
+    public Graph<K, VV, EV> fromCollection(ExecutionEnvironment env, Collection<Tuple2<K, VV>> v,
+                                           Collection<Tuple3<K, K, EV>> e) throws Exception {
+        DataSet<Tuple2<K, VV>> vertices = env.fromCollection(v);
+        DataSet<Tuple3<K, K, EV>> edges = env.fromCollection(e);
+
+        return Graph.create(vertices, edges);
+    }
+
+    /**
+     * Performs a Breadth First Search on a graph
+     * @param src
+     * @param env
+     * @return
+     */
+//    public List<Tuple2<K, VV>> bfs(Tuple2<K, VV> src, ExecutionEnvironment env) {
+//        List<Tuple2<K, VV>> neighbouringVertices = new ArrayList<>();
+//        neighbouringVertices.add(src);
+//        DataSet<Tuple2<K, VV>> verticesPreviousLevel = env.fromCollection(neighbouringVertices);
+//        DataSet<Tuple2<K,VV>> allVertices = env.fromCollection(neighbouringVertices);
+//
+//        Map<Tuple2<K, VV>, Boolean> visited = new TreeMap<>();
+//        visited.put(src, true);
+//
+//        while(true) {
+//            /* for all the previuos level vertices, find the edges that were not yet visited */
+//            DataSet<Tuple2<K, VV>> newVerticeLevel = verticesPreviousLevel.flatMap(new MapFunction<Tuple2<K, VV>,
+//                    DataSet<Tuple2<K, VV>>>() {
+//                @Override
+//                public DataSet<Tuple2<K, VV>> map(Tuple2<K, VV> kvvTuple2) throws Exception {
+//                    Graph.this.getEdges().filter(new FilterFunction<Tuple3<K, K, EV>>() {
+//                    @Override
+//                    public boolean filter(Tuple3<K, K, EV> kvvTuple2) throws Exception {
+//                        return false;
+//                    }
+//                }).map(Tuple);
+//            });
+//        }
+//
+//    }
+
+    /**
+     * Creates a subgraph starting from a source vertex and expanding it for a given distance
+     * (in number of edges)
+     * @param src
+     * @param distance
+     * @return a  neighbourhood subgraph
+     */
+    public Graph<K, VV, EV> getNeighborhoodGraph(final Tuple2<K, VV> src, Integer distance, ExecutionEnvironment env) {
+        Integer step = 0;
+        List<Tuple3<K, K, EV>> edges = new ArrayList<>();
+        DataSet<Tuple3<K, K, EV>> edgesForAVertex = env.fromCollection(edges);
+        List<Tuple2<K, VV>> neighbouringVertices = new ArrayList<>();
+        neighbouringVertices.add(src);
+        DataSet<Tuple2<K,VV>> verticesPreviousLevel = env.fromCollection(neighbouringVertices);
+        DataSet<Tuple2<K,VV>> allVertices = env.fromCollection(neighbouringVertices);
+
+        final Map<K, Boolean> visited = new TreeMap<>();
+//      visited.put(src.f0, true);
+
+        while(step < distance) {
+            /* for all the previuos level vertices, find the edges that were not yet visited */
+            DataSet<DataSet<Tuple2<K, VV>>> newVerticeLevel = verticesPreviousLevel.flatMap(new FlatMapFunction<Tuple2<K, VV>, DataSet<Tuple2<K, VV>>>() {
+                @Override
+                public void flatMap(Tuple2<K, VV> kvvTuple2, Collector<DataSet<Tuple2<K, VV>>> dataSetCollector) throws Exception {
+                   dataSetCollector.collect(null);
+                }
+            });
+
+            edgesForAVertex = Graph.this.getEdges().filter(new FilterFunction<Tuple3<K, K, EV>>() {
+                @Override
+                public boolean filter(Tuple3<K, K, EV> kkevTuple3) throws Exception {
+                    Tuple2<K, VV> currentVertex = src;
+
+                    return ((kkevTuple3.f0.equals(currentVertex.f0))  ||
+                            (kkevTuple3.f1.equals(currentVertex.f0)));
+                }
+            });
+            step++;
+        }
+    }
 
 }

@@ -138,6 +138,38 @@ public class GraphTest implements Serializable{
     }
 
     @Test
+    public void testMapEdges() throws Exception {
+
+        DataSet<Tuple3<Integer, Integer, Double>> doubled= graph.mapEdges(new MapFunction<Integer, Double>() {
+            @Override
+            public Double map(Integer value) throws Exception {
+                return value * 2.5;
+            }
+        });
+
+        List<Tuple3<Integer, Integer, Double>> doubledData = new ArrayList<>();
+        doubled.output(new LocalCollectionOutputFormat<>(doubledData));
+
+        DataSet<Tuple3<Integer, Integer, Double>>  doubledDataset = graph.getEdges()
+                .map(new MapFunction<Tuple3<Integer, Integer, Integer>, Tuple3<Integer, Integer, Double>>() {
+                    @Override
+                    public Tuple3<Integer, Integer, Double> map(Tuple3<Integer, Integer, Integer> v) throws Exception {
+                        return new Tuple3<Integer, Integer, Double> (v.f0, v.f1,v.f2 * 2.5);
+                    }
+                });
+        List<Tuple3<Integer, Integer, Double>> originalDataDoubled = new ArrayList<>();
+        doubledDataset.output(new LocalCollectionOutputFormat<>(originalDataDoubled));
+
+        assertEquals(doubledData, originalDataDoubled);
+
+        doubled.print();
+        env.execute();
+        graph.getVertices().print();
+
+        env.execute();
+    }
+
+    @Test
     public void testSubgraph() throws Exception {
         throw new NotImplementedException();
     }
@@ -217,7 +249,7 @@ public class GraphTest implements Serializable{
         env.execute();
 
         Vertex vertex = new Vertex(data.get(desiredVertex).f0, data.get(desiredVertex).f1);
-        DataSet<Integer> result =  vertex.inDegree(graph);
+        DataSet<Integer> result =  vertex.inDegree(env, graph);
 
         List<Integer> resultedData = new ArrayList<>();
         result.output(new LocalCollectionOutputFormat(resultedData));
@@ -238,7 +270,7 @@ public class GraphTest implements Serializable{
         env.execute();
 
         Vertex vertex = new Vertex(data.get(desiredVertex).f0, data.get(desiredVertex).f1);
-        DataSet<Integer> result =  vertex.inDegree(graph);
+        DataSet<Integer> result =  vertex.inDegree(env, graph);
 
         List<Integer> resultedData = new ArrayList<>();
         result.output(new LocalCollectionOutputFormat(resultedData));
@@ -255,7 +287,7 @@ public class GraphTest implements Serializable{
         env.execute();
 
         Vertex vertex = new Vertex(data.get(desiredVertex).f0, data.get(desiredVertex).f1);
-        DataSet<Integer> result =  vertex.outDegree(graph);
+        DataSet<Integer> result =  vertex.outDegree(env, graph);
 
         List<Integer> resultedData = new ArrayList<>();
         result.output(new LocalCollectionOutputFormat(resultedData));
@@ -276,7 +308,7 @@ public class GraphTest implements Serializable{
         env.execute();
 
         Vertex vertex = new Vertex(data.get(desiredVertex).f0, data.get(desiredVertex).f1);
-        DataSet<Integer> result =  vertex.outDegree(graph);
+        DataSet<Integer> result =  vertex.outDegree(env, graph);
 
         List<Integer> resultedData = new ArrayList<>();
         result.output(new LocalCollectionOutputFormat(resultedData));
@@ -293,7 +325,7 @@ public class GraphTest implements Serializable{
         env.execute();
 
         Vertex vertex = new Vertex(data.get(desiredVertex).f0, data.get(desiredVertex).f1);
-        DataSet<Integer> result =  vertex.getDegree(graph);
+        DataSet<Integer> result =  vertex.getDegree(env, graph);
 
         List<Integer> resultedData = new ArrayList<>();
         result.output(new LocalCollectionOutputFormat(resultedData));
@@ -407,4 +439,43 @@ public class GraphTest implements Serializable{
 
         assertEquals("Test neighbours", listExpected, resultedData);
     }
+
+    @Test
+    public void testFromCollection() throws Exception {
+        List<Tuple2<Integer, Integer>> tuple2List = new ArrayList<Tuple2<Integer, Integer>>();
+
+        for (int i = 0; i < 4; i++) {
+            Tuple2<Integer, Integer> v = new Tuple2<Integer, Integer>(i, i);
+            tuple2List.add(v);
+        }
+
+        List<Tuple3<Integer, Integer, Integer>> edgeList = new ArrayList<>();
+
+        edgeList.add(new Tuple3<Integer, Integer, Integer>(0, 1, 0));
+        edgeList.add(new Tuple3<Integer, Integer, Integer>(1, 3, 0));
+        edgeList.add(new Tuple3<Integer, Integer, Integer>(0, 3, 0));
+        edgeList.add(new Tuple3<Integer, Integer, Integer>(1, 2, 0));
+
+
+        Graph<Integer, Integer, Integer> g = graph.fromCollection(env, tuple2List, edgeList);
+        g.getVertices().print();
+        env.execute();
+    }
+
+    @Test
+    public void testBFS() {
+        List<Tuple2<Integer, Integer>> Tuple2List = new ArrayList<Tuple2<Integer, Integer>>();
+        Tuple2<Integer, Integer> v = new Tuple2<Integer, Integer>(0, 0);
+        Tuple2List.add(v);
+
+        List<Tuple2<Integer, Integer>> actual =  graph.bfs(Tuple2List.get(0), env);
+        List<Tuple2<Integer, Integer>> expected = new ArrayList<>();
+        expected.add(0, new Tuple2<Integer, Integer>(0, 0));
+        expected.add(1, new Tuple2<Integer, Integer>(1, 1));
+        expected.add(2, new Tuple2<Integer, Integer>(3, 3));
+        expected.add(3, new Tuple2<Integer, Integer>(2, 2));
+
+        assertEquals("BFS", expected, actual);
+    }
+
 }
