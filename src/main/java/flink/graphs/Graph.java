@@ -403,7 +403,8 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
      * @param e the collection of edges
      * @return a new graph formed from the set of edges and vertices
      */
-    public Graph<K, VV, EV> fromCollection(ExecutionEnvironment env, Collection<Tuple2<K, VV>> v,
+    public static <K extends Comparable<K> & Serializable, VV extends Serializable,
+			EV extends Serializable> Graph<K, VV, EV> fromCollection(ExecutionEnvironment env, Collection<Tuple2<K, VV>> v,
                                            Collection<Tuple3<K, K, EV>> e) throws Exception {
         DataSet<Tuple2<K, VV>> vertices = env.fromCollection(v);
         DataSet<Tuple3<K, K, EV>> edges = env.fromCollection(e);

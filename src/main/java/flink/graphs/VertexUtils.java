@@ -20,18 +20,18 @@ public class VertexUtils {
      * @param f the function used for filtering
      * @return  a counter representing the edges that respect f
      */
-    public static final <K extends Comparable<K> & Serializable, V extends Serializable, EV extends Serializable> DataSet<Integer> countWhere
+    public static final <K extends Comparable<K> & Serializable, V extends Serializable, EV extends Serializable> DataSet<Long> countWhere
                                 (ExecutionEnvironment environment, Graph<K, V, EV> graph, FilterFunction<Tuple3<K, K, EV>> f) {
-        List<Integer> list = new ArrayList<>();
-        list.add(0);
-        DataSet<Integer> initialCount = environment.fromCollection(list);
+        List<Long> list = new ArrayList<>();
+        list.add(0L);
+        DataSet<Long> initialCount = environment.fromCollection(list);
 
-        return graph.getEdges().filter(f).map(new MapFunction<Tuple3<K, K, EV>, Integer>() {
-            public Integer map(Tuple3<K, K, EV> edge){
-                return 1;
+        return graph.getEdges().filter(f).map(new MapFunction<Tuple3<K, K, EV>, Long>() {
+            public Long map(Tuple3<K, K, EV> edge){
+                return 1L;
             }
-        }).union(initialCount).reduce(new ReduceFunction<Integer>() {
-            public Integer reduce(Integer val1, Integer val2) {
+        }).union(initialCount).reduce(new ReduceFunction<Long>() {
+            public Long reduce(Long val1, Long val2) {
                 return val1 + val2;
             }
         });
