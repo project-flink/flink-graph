@@ -31,7 +31,9 @@ import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.api.java.io.CsvReader;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.spargel.java.MessagingFunction;
 import org.apache.flink.spargel.java.VertexCentricIteration;
+import org.apache.flink.spargel.java.VertexUpdateFunction;
 import org.apache.flink.util.Collector;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -558,9 +560,12 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
         DataSet<Tuple3<K,K,EV>> unionedEdges = graph.getEdges().union(this.getEdges());
         return new Graph<K,VV,EV>(unionedVertices, unionedEdges, this.context);
     }
-
-    public Graph<K, VV, EV> passMessages (VertexCentricIteration<K, VV, ?, EV> iteration) {
-        DataSet<Tuple2<K,VV>> newVertices = iteration.createResult();
-        return new Graph<K,VV,EV>(newVertices, edges, this.context);
+    
+    public <M>Graph<K, VV, EV> runVertexCentricIteration(VertexUpdateFunction<K, VV, M> vertexUpdateFunction,
+    		MessagingFunction<K, VV, M, EV> messagingFunction, int maximumNumberOfIterations) {
+    	DataSet<Tuple2<K, VV>> newVertices = vertices.runOperation(
+    			VertexCentricIteration.withValuedEdges(edges, vertexUpdateFunction, messagingFunction, 
+    			maximumNumberOfIterations));
+		return new Graph<K, VV, EV>(newVertices, edges, context);
     }
 }
