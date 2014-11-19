@@ -120,40 +120,6 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
     }
 
     /**
-     * Apply a function to the attribute of each Tuple3 in the graph
-     * @param mapper A function that transforms the attribute of each Tuple3
-     * @return A DataSet of Tuple3 which contains the new values of all edges
-     */
-    public <EV2 extends Serializable> DataSet<Tuple3<K, K, EV2>> mapEdges(final MapFunction<EV, EV2> mapper) {
-        return edges.map(new ApplyMapperToEdge<K, EV, EV2>(mapper));
-    }
-
-    private class ApplyMapperToEdge<K,EV,EV2> implements MapFunction
-            <Tuple3<K, K, EV>, Tuple3<K, K, EV2>>, ResultTypeQueryable<Tuple3<K, K, EV2>> {
-
-        private MapFunction<EV, EV2> innerMapper;
-
-        public ApplyMapperToEdge(MapFunction<EV, EV2> theMapper) {
-            this.innerMapper = theMapper;
-        }
-
-        public Tuple3<K, K, EV2> map(Tuple3<K, K, EV> value) throws Exception {
-			System.out.println("X");
-            return new Tuple3<K, K, EV2>(value.f0, value.f1 ,innerMapper.map(value.f2));
-        }
-
-		@Override
-		public TypeInformation<Tuple3<K, K, EV2>> getProducedType() {
-			@SuppressWarnings("unchecked")
-
-			TypeInformation<EV2> newEdgeValueType = TypeExtractor.getMapReturnTypes(innerMapper,
-					(TypeInformation<EV>)edgeValueType);
-
-			return new TupleTypeInfo<Tuple3<K, K, EV2>>(edgeSrcKeyType, edgeDstKeyType, newEdgeValueType);
-		}
-    }
-
-    /**
      * Apply value-based filtering functions to the graph 
      * and return a sub-graph that satisfies the predicates
      * for both vertex values and edge values.
@@ -406,133 +372,10 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
     public static <K extends Comparable<K> & Serializable, VV extends Serializable,
 			EV extends Serializable> Graph<K, VV, EV> fromCollection(ExecutionEnvironment env, Collection<Tuple2<K, VV>> v,
                                            Collection<Tuple3<K, K, EV>> e) throws Exception {
-        DataSet<Tuple2<K, VV>> vertices = env.fromCollection(v);
-        DataSet<Tuple3<K, K, EV>> edges = env.fromCollection(e);
+		DataSet<Tuple2<K, VV>> vertices = env.fromCollection(v);
+		DataSet<Tuple3<K, K, EV>> edges = env.fromCollection(e);
 
-        return Graph.create(vertices, edges);
-    }
-
-    /**
-     * Performs a Breadth First Search on a graph
-     * @param src
-     * @param env
-     * @return
-     */
-//    public List<Tuple2<K, VV>> bfs(Tuple2<K, VV> src, ExecutionEnvironment env) {
-//        List<Tuple2<K, VV>> neighbouringVertices = new ArrayList<>();
-//        neighbouringVertices.add(src);
-//        DataSet<Tuple2<K, VV>> verticesPreviousLevel = env.fromCollection(neighbouringVertices);
-//        DataSet<Tuple2<K,VV>> allVertices = env.fromCollection(neighbouringVertices);
-//
-//        Map<Tuple2<K, VV>, Boolean> visited = new TreeMap<>();
-//        visited.put(src, true);
-//
-//        while(true) {
-//            /* for all the previuos level vertices, find the edges that were not yet visited */
-//            DataSet<Tuple2<K, VV>> newVerticeLevel = verticesPreviousLevel.flatMap(new MapFunction<Tuple2<K, VV>,
-//                    DataSet<Tuple2<K, VV>>>() {
-//                @Override
-//                public DataSet<Tuple2<K, VV>> map(Tuple2<K, VV> kvvTuple2) throws Exception {
-//                    Graph.this.getEdges().filter(new FilterFunction<Tuple3<K, K, EV>>() {
-//                    @Override
-//                    public boolean filter(Tuple3<K, K, EV> kvvTuple2) throws Exception {
-//                        return false;
-//                    }
-//                }).map(Tuple);
-//            });
-//        }
-//
-//    }
-
-    /**
-     * Creates a subgraph starting from a source vertex and expanding it for a given distance
-     * (in number of edges)
-     * @param src
-     * @param distance
-     * @return a  neighbourhood subgraph
-     */
-    public Graph<K, VV, EV> getNeighborhoodGraph(final Tuple2<K, VV> src, Integer distance, ExecutionEnvironment env) {
-        Integer step = 0;
-        DataSet<Tuple3<K, K, EV>> allEdges = null;
-        List<Tuple2<K, VV>> neighbouringVertices = new ArrayList<>();
-        neighbouringVertices.add(src);
-        DataSet<Tuple2<K,VV>> verticesPreviousLevel = env.fromCollection(neighbouringVertices);
-        DataSet<Tuple2<K,VV>> allVertices = env.fromCollection(neighbouringVertices);
-
-        final Map<K, Tuple2<Tuple2<K, VV>, Boolean>> visited = new TreeMap<>();
-		Graph.this.getVertices().map(new MapFunction<Tuple2<K,VV>, Object>() {
-			@Override
-			public Object map(Tuple2<K, VV> kvvTuple2) throws Exception {
-				visited.put(kvvTuple2.f0,new Tuple2<Tuple2<K, VV>, Boolean>(kvvTuple2,false));
-				return null;
-			}
-		});
-	    visited.put(src.f0, new Tuple2<Tuple2<K, VV>, Boolean>(src,true));
-
-        while(step < distance) {
-            /* for all the previuos level vertices, find the edges that were not yet visited */
-            DataSet<Tuple2<K, VV>> newVerticesLevel = verticesPreviousLevel.flatMap(new FlatMapFunction<Tuple2<K, VV>, Tuple2<K, VV>>() {
-                @Override
-                public void flatMap(final Tuple2<K, VV> kvvTuple2, final Collector<Tuple2<K, VV>> tuple2Collector) throws Exception {
-					Graph.this.getEdges().filter(new FilterFunction<Tuple3<K, K, EV>>() {
-						@Override
-						public boolean filter(Tuple3<K, K, EV> kkevTuple3) throws Exception {
-							Tuple2<K, VV> currentVertex = kvvTuple2;
-
-							return ((kkevTuple3.f0.equals(currentVertex.f0))  ||
-									(kkevTuple3.f1.equals(currentVertex.f0))) &&
-									(!visited.get(kkevTuple3.f0).f1 ||
-									!visited.get(kkevTuple3.f1).f1);
-						}
-					}).map(new MapFunction<Tuple3<K, K, EV>, Tuple2<K, VV>>() {
-						@Override
-						public Tuple2<K, VV> map(Tuple3<K, K, EV> kkevTuple3) throws Exception {
-							if (kvvTuple2.f0.equals(kkevTuple3.f0)) {
-								tuple2Collector.collect(visited.get(kkevTuple3.f1).f0);
-								visited.put(kkevTuple3.f1,new Tuple2<Tuple2<K, VV>, Boolean>(visited.get(kkevTuple3.f1).f0,true));
-								return visited.get(kkevTuple3.f1).f0;
-							} else {
-								tuple2Collector.collect(visited.get(kkevTuple3.f0).f0);
-								visited.put(kkevTuple3.f0,new Tuple2<Tuple2<K, VV>, Boolean>(visited.get(kkevTuple3.f0).f0,true));
-								return visited.get(kkevTuple3.f0).f0;
-							}
-						}
-					});
-
-                }
-            }).distinct();
-			DataSet<Tuple3<K, K, EV>> newEdgesLevel = verticesPreviousLevel.flatMap(new FlatMapFunction<Tuple2<K, VV>, Tuple3<K, K, EV>>() {
-				@Override
-				public void flatMap(final Tuple2<K, VV> kvvTuple2, final Collector<Tuple3<K, K, EV>> tuple3Collector) throws Exception {
-					Graph.this.getEdges().filter(new FilterFunction<Tuple3<K, K, EV>>() {
-						@Override
-						public boolean filter(Tuple3<K, K, EV> kkevTuple3) throws Exception {
-							Tuple2<K, VV> currentVertex = kvvTuple2;
-
-							return ((kkevTuple3.f0.equals(currentVertex.f0))  ||
-									(kkevTuple3.f1.equals(currentVertex.f0)));
-
-						}
-					}).map(new MapFunction<Tuple3<K, K, EV>, Tuple3<K, K, EV>>() {
-						@Override
-						public Tuple3<K, K,EV> map(Tuple3<K, K, EV> kkevTuple3) throws Exception {
-							tuple3Collector.collect(kkevTuple3);
-							return kkevTuple3;
-						}
-					});
-
-				}
-			});
-			if (allEdges!=null) {
-				allEdges = allEdges.union(newEdgesLevel).distinct();
-			} else {
-				allEdges = newEdgesLevel;
-			}
-			allVertices = allVertices.union(newVerticesLevel);
-			verticesPreviousLevel = newVerticesLevel;
-            step++;
-        }
-		return new Graph<K, VV, EV>(allVertices,allEdges);
-    }
+		return Graph.create(vertices, edges);
+	}
 
 }
