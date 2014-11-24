@@ -21,7 +21,7 @@ import flink.graphs.TestGraphUtils.DummyCustomType;
 @RunWith(Parameterized.class)
 public class TestGraphCreation extends JavaProgramTestBase {
 
-	private static int NUM_PROGRAMS = 6;
+	private static int NUM_PROGRAMS = 10;
 	
 	private int curProgId = config.getInteger("ProgramId", -1);
 	private String resultPath;
@@ -187,6 +187,71 @@ public class TestGraphCreation extends JavaProgramTestBase {
 					"3,(6.0,2)\n" + 
 					"4,(8.0,3)\n" + 
 					"5,(10.0,4)\n";
+			}
+			case 7: {
+				/*
+				 * Test create() with edge dataset and a default Integer value
+		         */
+				final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+				Graph<Long, Integer, Long> graph = Graph.create(TestGraphUtils.getLongLongEdgeData(env), 
+						42);
+
+				graph.getVertices().writeAsCsv(resultPath);
+				env.execute();
+				return "1,42\n" +
+					"2,42\n" +
+					"3,42\n" + 
+					"4,42\n" + 
+					"5,42\n";
+			}
+			case 8: {
+				/*
+				 * Test create() with edge dataset and a default Tuple2 value
+		         */
+				final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+				Graph<Long, Tuple2<String, Double>, Long> graph = Graph.create(TestGraphUtils.getLongLongEdgeData(env), 
+						new Tuple2<String, Double>("kalamari", 0.9));
+
+				graph.getVertices().writeAsCsv(resultPath);
+				env.execute();
+				return "1,(kalamari,0.9)\n" +
+					"2,(kalamari,0.9)\n" +
+					"3,(kalamari,0.9)\n" +
+					"4,(kalamari,0.9)\n" +
+					"5,(kalamari,0.9)\n";
+			}
+			case 9: {
+				/*
+				 * Test create() with edge dataset and a default custom value
+		         */
+				final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+				Graph<Long, DummyCustomType, Long> graph = Graph.create(TestGraphUtils.getLongLongEdgeData(env), 
+						new DummyCustomType(1, false));
+
+				graph.getVertices().writeAsCsv(resultPath);
+				env.execute();
+				return "1,(F,1)\n" +
+					"2,(F,1)\n" +
+					"3,(F,1)\n" +
+					"4,(F,1)\n" +
+					"5,(F,1)\n";
+			}
+			case 10: {
+				/*
+				 * Test create() with edge dataset and a default custom parametrized value
+		         */
+				final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+				final DummyCustomParameterizedType<Double> dummy = new DummyCustomParameterizedType<Double>(42,0.1);
+				Graph<Long, DummyCustomParameterizedType<Double>, Long> graph = Graph.create(TestGraphUtils.getLongLongEdgeData(env), 
+						dummy);
+
+				graph.getVertices().writeAsCsv(resultPath);
+				env.execute();
+				return "1,(0.1,42)\n" +
+					"2,(0.1,42)\n" +
+					"3,(0.1,42)\n" +
+					"4,(0.1,42)\n" +
+					"5,(0.1,42)\n";
 			}
 			default: 
 				throw new IllegalArgumentException("Invalid program id");
