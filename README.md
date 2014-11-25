@@ -13,17 +13,10 @@ Graph API for Apache Flink
 * readTuple2CsvFile
 * readEdgesCsvFile
 * readGraphFromCsvFile
-* numberOfVertices()
-* numberOfEdges()
-* getVertexIds()
-* getEdgeIds()
-* isWeaklyConnected()
 * addVertex()
 * removeVertex()
 * addEdge()
 * union()
-* passMessages()
-
 
 ###Vertex Class
 
@@ -32,19 +25,24 @@ Graph API for Apache Flink
 
 ##Tested Operations
 * mapVertices()
+* mapEdges()
 * subGraph()
 * outDegrees()
 * getUndirected()
 * reverse()
+* fromCollection(vertices, edges)
+* numberOfVertices()
+* numberOfEdges()
+* getVertexIds()
+* getEdgeIds()
+* isWeaklyConnected()
+* runVertexCentricIteration()
 
 ##Wishlist
 
 ###Graph Class
-* fromCollection(vertices, edges)
-* fromCollection(vertices)
-* mapEdges()
+* fromCollection(edges)
 * getNeighborhoodGraph(Vertex src, int distance)
-* vertexCentricComputation()
 * edgeCentricComputation()
 * partitionCentricComputation()
 

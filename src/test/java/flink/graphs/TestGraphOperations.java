@@ -16,7 +16,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class TestGraphOperations extends JavaProgramTestBase {
 
-	private static int NUM_PROGRAMS = 8;
+	private static int NUM_PROGRAMS = 9;
 	
 	private int curProgId = config.getInteger("ProgramId", -1);
 	private String resultPath;
@@ -196,25 +196,43 @@ public class TestGraphOperations extends JavaProgramTestBase {
 			}
 			case 9: {
 				/*
-				 * Test addVertex()
-				 */	
-			}
+				 * Test fromCollection:
+			     */
+				final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+				Graph<Long, Long, Long> graph = Graph.fromCollection(env, TestGraphUtils.getLongLongVertices(env),
+						TestGraphUtils.getLongLongEdges(env));
+
+				graph.getEdges().writeAsCsv(resultPath);
+				env.execute();
+				return "1,2,12\n" +
+					"1,3,13\n" +
+					"2,3,23\n" +
+					"3,4,34\n" +
+					"3,5,35\n" +
+					"4,5,45\n" +
+					"5,1,51\n";
+				}
 			case 10: {
 				/*
-				 * Test removeVertex()
+				 * Test addVertex()
 				 */	
 			}
 			case 11: {
 				/*
+				 * Test removeVertex()
+				 */	
+			}
+			case 12: {
+				/*
 				 * Test addEdge()
 				 */				
 			}
-			case 12: {
+			case 13: {
 				/*
 				 * Test union()
 				 */				
 			}
-			case 13: {
+			case 14: {
 				/*
 				 * Test passMessages()
 				 */				
