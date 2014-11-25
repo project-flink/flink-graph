@@ -124,46 +124,45 @@ public class TestGraphOperations extends JavaProgramTestBase {
 				/*
 				 * Test subgraph:
 				 */
-					final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+				final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+				
+				Graph<Long, Long, Long> graph = Graph.create(TestGraphUtils.getLongLongVertexData(env),
+						TestGraphUtils.getLongLongEdgeData(env));
+				graph.subgraph(new FilterFunction<Long>() {
+					public boolean filter(Long value) throws Exception {
+						return (value > 2);
+					}
+				}, 
+				new FilterFunction<Long>() {
+					public boolean filter(Long value) throws Exception {
+						return (value > 34);
+					}
+				}).getEdges().writeAsCsv(resultPath);
+				
+				env.execute();
+				return "3,5,35\n" +
+				"4,5,45\n";
+			}
+			case 5: {
+				/*
+				 * Test fromCollection:
+			         */
+				final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+				Graph<Long, Long, Long> graph = Graph.fromCollection(env, TestGraphUtils.getLongLongVertices(env),
+						TestGraphUtils.getLongLongEdges(env));
 
-					Graph<Long, Long, Long> graph = Graph.create(TestGraphUtils.getLongLongVertexData(env),
-							TestGraphUtils.getLongLongEdgeData(env));
-					graph.subgraph(new FilterFunction<Long>() {
-									   public boolean filter(Long value) throws Exception {
-										   return (value > 2);
-									   }
-								   },
-							new FilterFunction<Long>() {
-								public boolean filter(Long value) throws Exception {
-									return (value > 34);
-								}
-							}).getEdges().writeAsCsv(resultPath);
-
-					env.execute();
-					return "3,5,35\n" +
-							"4,5,45\n";
+				graph.getEdges().writeAsCsv(resultPath);
+				env.execute();
+				return "1,2,12\n" +
+					"1,3,13\n" +
+					"2,3,23\n" +
+					"3,4,34\n" +
+					"3,5,35\n" +
+					"4,5,45\n" +
+					"5,1,51\n";
 				}
-				case 5: {
-					/*
-					 * Test fromCollection:
-					 */
-					final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-					Graph<Long, Long, Long> graph = Graph.fromCollection(env, TestGraphUtils.getLongLongVertices(env),
-							TestGraphUtils.getLongLongEdges(env));
-
-					graph.getEdges().writeAsCsv(resultPath);
-					env.execute();
-					return "1,2,12\n" +
-							"1,3,13\n" +
-							"2,3,23\n" +
-							"3,4,34\n" +
-							"3,5,35\n" +
-							"4,5,45\n" +
-							"5,1,51\n";
-				}
-
-				default:
-					throw new IllegalArgumentException("Invalid program id");
+			default: 
+				throw new IllegalArgumentException("Invalid program id");
 			}
 
 
