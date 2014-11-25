@@ -23,6 +23,8 @@ Graph API for Apache Flink
 * addEdge()
 * union()
 * passMessages()
+* fromCollection(vertices, edges)
+* fromCollection(edges)
 
 
 ###Vertex Class
@@ -38,11 +40,11 @@ Graph API for Apache Flink
 * getUndirected()
 * reverse()
 * fromCollection(vertices, edges)
+* fromCollection(edges)
 
 ##Wishlist
 
 ###Graph Class
-* fromCollection(edges)
 * getNeighborhoodGraph(Vertex src, int distance)
 * vertexCentricComputation()
 * edgeCentricComputation()
