@@ -43,21 +43,16 @@ import java.util.Collection;
 
 @SuppressWarnings("serial")
 public class Graph<K extends Comparable<K> & Serializable, VV extends Serializable,
-	EV extends Serializable> implements Serializable{
+		EV extends Serializable> implements Serializable{
 
 	private final DataSet<Tuple2<K, VV>> vertices;
-
 	private final DataSet<Tuple3<K, K, EV>> edges;
-
 	private boolean isUndirected;
-
 	private static TypeInformation<?> keyType;
 	private static TypeInformation<?> vertexValueType;
 	private static TypeInformation<?> edgeValueType;
 
-
 	public Graph(DataSet<Tuple2<K, VV>> vertices, DataSet<Tuple3<K, K, EV>> edges) {
-
 		/** a graph is directed by default */
 		this(vertices, edges, false);
 	}
@@ -66,7 +61,6 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 		this.vertices = vertices;
 		this.edges = edges;
 		this.isUndirected = undirected;
-		
 		Graph.keyType = ((TupleTypeInfo<?>) vertices.getType()).getTypeAt(0);
 		Graph.vertexValueType = ((TupleTypeInfo<?>) vertices.getType()).getTypeAt(1);
 		Graph.edgeValueType = ((TupleTypeInfo<?>) edges.getType()).getTypeAt(2);
@@ -79,12 +73,12 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 	public DataSet<Tuple3<K, K, EV>> getEdges() {
 		return edges;
 	}
-    
-    /**
-     * Apply a function to the attribute of each vertex in the graph.
-     * @param mapper
-     * @return
-     */
+
+	/**
+	 * Apply a function to the attribute of each vertex in the graph.
+	 * @param mapper
+	 * @return
+	 */
     public <NV extends Serializable> DataSet<Tuple2<K, NV>> mapVertices(final MapFunction<VV, NV> mapper) {
         return vertices.map(new ApplyMapperToVertexWithType<K, VV, NV>(mapper));
     }

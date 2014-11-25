@@ -19,10 +19,18 @@
 package flink.graphs;
 
 import java.io.Serializable;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.flink.api.common.functions.*;
+import org.apache.flink.api.java.DataSet;
+import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.util.Collector;
 
-public class Vertex<K extends Serializable, V extends Serializable> extends Tuple2<K, V> {
+public class Vertex<K extends Comparable<K> & Serializable, V extends Serializable> extends Tuple2<K, V> {
 
 	private static final long serialVersionUID = 1L;
 
