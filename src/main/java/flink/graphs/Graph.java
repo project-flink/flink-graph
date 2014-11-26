@@ -43,21 +43,16 @@ import java.util.Collection;
 
 @SuppressWarnings("serial")
 public class Graph<K extends Comparable<K> & Serializable, VV extends Serializable,
-	EV extends Serializable> implements Serializable{
+		EV extends Serializable> implements Serializable{
 
 	private final DataSet<Tuple2<K, VV>> vertices;
-
 	private final DataSet<Tuple3<K, K, EV>> edges;
-
 	private boolean isUndirected;
-
 	private static TypeInformation<?> keyType;
 	private static TypeInformation<?> vertexValueType;
 	private static TypeInformation<?> edgeValueType;
 
-
 	public Graph(DataSet<Tuple2<K, VV>> vertices, DataSet<Tuple3<K, K, EV>> edges) {
-
 		/** a graph is directed by default */
 		this(vertices, edges, false);
 	}
@@ -66,7 +61,6 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 		this.vertices = vertices;
 		this.edges = edges;
 		this.isUndirected = undirected;
-		
 		Graph.keyType = ((TupleTypeInfo<?>) vertices.getType()).getTypeAt(0);
 		Graph.vertexValueType = ((TupleTypeInfo<?>) vertices.getType()).getTypeAt(1);
 		Graph.edgeValueType = ((TupleTypeInfo<?>) edges.getType()).getTypeAt(2);
@@ -79,12 +73,12 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 	public DataSet<Tuple3<K, K, EV>> getEdges() {
 		return edges;
 	}
-    
-    /**
-     * Apply a function to the attribute of each vertex in the graph.
-     * @param mapper
-     * @return
-     */
+
+	/**
+	 * Apply a function to the attribute of each vertex in the graph.
+	 * @param mapper
+	 * @return
+	 */
     public <NV extends Serializable> DataSet<Tuple2<K, NV>> mapVertices(final MapFunction<VV, NV> mapper) {
         return vertices.map(new ApplyMapperToVertexWithType<K, VV, NV>(mapper));
     }
@@ -314,8 +308,8 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 		DataSet<Tuple2<K, NullValue>> vertices = 
 				edges.flatMap(new EmitSrcAndTarget<K, EV>()).distinct(); 
 		return new Graph<K, NullValue, EV>(vertices, edges);
-}
-	
+	}
+
 	/**
 	 * Creates a graph from a DataSet of edges.
 	 * Vertices are created automatically and their values are set
@@ -465,12 +459,12 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 	}
 
 	/**
-     	 * Creates a graph from the given vertex and edge collections
-     	 * @param env
-     	 * @param v the collection of vertices
-         * @param e the collection of edges
-         * @return a new graph formed from the set of edges and vertices
-         */
+	 * Creates a graph from the given vertex and edge collections
+	 * @param env
+	 * @param v the collection of vertices
+	 * @param e the collection of edges
+	 * @return a new graph formed from the set of edges and vertices
+	 */
 	 public static <K extends Comparable<K> & Serializable, VV extends Serializable,
 			EV extends Serializable> Graph<K, VV, EV> fromCollection(ExecutionEnvironment env, Collection<Tuple2<K, VV>> v,
                                            Collection<Tuple3<K, K, EV>> e) throws Exception {
@@ -479,5 +473,38 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 
 		return Graph.create(vertices, edges);
 	}
+
+	/**
+	 * Vertices may not have a value attached or may receive a value as a result of running the algorithm.
+	 * @param env
+	 * @param e the collection of edges
+	 * @return a new graph formed from the edges, with no value for the vertices
+	 */
+	public static <K extends Comparable<K> & Serializable, VV extends Serializable,
+			EV extends Serializable> Graph<K, NullValue, EV> fromCollection(ExecutionEnvironment env, Collection<Tuple3<K, K, EV>> e) {
+
+		DataSet<Tuple3<K, K, EV>> edges = env.fromCollection(e);
+
+		return Graph.create(edges);
+	}
+
+	/**
+	 * Vertices may have an initial value defined by a function.
+	 * @param env
+	 * @param e the collection of edges
+	 * @return a new graph formed from the edges, with a custom value for the vertices,
+	 * determined by the mapping function
+	 */
+	public static <K extends Comparable<K> & Serializable, VV extends Serializable,
+			EV extends Serializable> Graph<K, VV, EV> fromCollection(ExecutionEnvironment env,
+																	 Collection<Tuple3<K, K, EV>> e,
+																	 final MapFunction<K, VV> mapper) {
+
+		DataSet<Tuple3<K, K, EV>> edges = env.fromCollection(e);
+
+		return Graph.create(edges, mapper);
+	}
+
+
 
 }
