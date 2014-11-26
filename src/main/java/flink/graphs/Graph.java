@@ -313,37 +313,6 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 	/**
 	 * Creates a graph from a DataSet of edges.
 	 * Vertices are created automatically and their values are set
-	 * to the default vertex value provided.
-	 * @param edges the input edges
-	 * @param defaultVertexValue
-	 * @return
-	 */
-	public static <K extends Comparable<K> & Serializable, VV extends Serializable, EV extends Serializable>
-	Graph<K, VV, EV> create(DataSet<Tuple3<K, K, EV>> edges, VV defaultVertexValue) {
-		DataSet<Tuple2<K, VV>> vertices =
-				edges.flatMap(new EmitSrcAndTargetAsTuple1<K, EV>())
-						.distinct().map(new DefaultVertexValueMapper<K, VV>(defaultVertexValue));
-		return new Graph<K, VV, EV>(vertices, edges);
-	}
-	private static final class DefaultVertexValueMapper<K, VV> implements MapFunction
-			<Tuple1<K>, Tuple2<K, VV>>, ResultTypeQueryable<Tuple2<K, VV>> {
-		private VV defaultVertexValue;
-		public DefaultVertexValueMapper(VV defaultValue) {
-			this.defaultVertexValue = defaultValue;
-		}
-		public Tuple2<K, VV> map(Tuple1<K> value) throws Exception {
-			return new Tuple2<K, VV>(value.f0, defaultVertexValue);
-		}
-		@Override
-		public TypeInformation<Tuple2<K, VV>> getProducedType() {
-			TypeInformation<VV> newVertexValueType = TypeExtractor.getForObject(defaultVertexValue);
-			return new TupleTypeInfo<Tuple2<K, VV>>(keyType, newVertexValueType);
-		}
-	}
-	
-	/**
-	 * Creates a graph from a DataSet of edges.
-	 * Vertices are created automatically and their values are set
 	 * by applying the provided map function to the vertex ids.
 	 * @param edges the input edges
 	 * @param mapper the map function to set the initial vertex value
@@ -517,22 +486,6 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 		DataSet<Tuple3<K, K, EV>> edges = env.fromCollection(e);
 
 		return Graph.create(edges);
-	}
-
-	/**
-	 * Vertices may have an initial, default value.
-	 * @param env
-	 * @param e the collection of edges
-	 * @return a new graph formed from the edges, with a default value for the vertices
-	 */
-	public static <K extends Comparable<K> & Serializable, VV extends Serializable,
-			EV extends Serializable> Graph<K, VV, EV> fromCollection(ExecutionEnvironment env,
-																	 Collection<Tuple3<K, K, EV>> e,
-																	 VV defaultVertexValue) {
-
-		DataSet<Tuple3<K, K, EV>> edges = env.fromCollection(e);
-
-		return Graph.create(edges, defaultVertexValue);
 	}
 
 	/**

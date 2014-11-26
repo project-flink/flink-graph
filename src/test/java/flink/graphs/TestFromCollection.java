@@ -15,7 +15,7 @@ import java.util.LinkedList;
 
 @RunWith(Parameterized.class)
 public class TestFromCollection extends JavaProgramTestBase {
-    private static int NUM_PROGRAMS = 4;
+    private static int NUM_PROGRAMS = 3;
 
     private int curProgId = config.getInteger("ProgramId", -1);
     private String resultPath;
@@ -95,22 +95,6 @@ public class TestFromCollection extends JavaProgramTestBase {
                             "5,(null)\n";
                 }
                 case 3: {
-                    /*
-                     * Test fromCollection(edges) with an initial given vertex value
-                     */
-                    final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-                    Graph<Long, Long, Long> graph = Graph.fromCollection(env,
-                            TestGraphUtils.getLongLongEdges(env), 23L);
-
-                    graph.getVertices().writeAsCsv(resultPath);
-                    env.execute();
-                    return "1,23\n" +
-                            "2,23\n" +
-                            "3,23\n" +
-                            "4,23\n" +
-                            "5,23\n";
-                }
-                case 4: {
                     /*
                      * Test fromCollection(edges) with vertices initialised by a
                      * function that takes the id and doubles it
