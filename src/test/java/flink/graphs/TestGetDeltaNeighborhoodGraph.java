@@ -12,7 +12,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 
 @RunWith(Parameterized.class)
-public class TestGetNeighborhoodGraph extends JavaProgramTestBase {
+public class TestGetDeltaNeighborhoodGraph extends JavaProgramTestBase {
 
     private static int NUM_PROGRAMS = 7;
 
@@ -20,7 +20,7 @@ public class TestGetNeighborhoodGraph extends JavaProgramTestBase {
     private String resultPath;
     private String expectedResult;
 
-    public TestGetNeighborhoodGraph(Configuration config) {
+    public TestGetDeltaNeighborhoodGraph(Configuration config) {
         super(config);
     }
 
@@ -69,7 +69,7 @@ public class TestGetNeighborhoodGraph extends JavaProgramTestBase {
                     Graph<Long, Long, Long> graph = Graph.create(TestGraphUtils.getLongLongVertexData(env),
                             TestGraphUtils.getLongLongEdgeData(env), env);
 
-                    graph.getNeighborhoodGraph(1L, 1).getVertexIds().writeAsText(resultPath);
+                    graph.getDeltaNeighborhoodGraph(1L, 1).getVertexIds().writeAsText(resultPath);
                     env.execute();
                     return "1\n" +
                             "2\n" +
@@ -85,7 +85,7 @@ public class TestGetNeighborhoodGraph extends JavaProgramTestBase {
                         Graph<Long, Long, Long> graph = Graph.create(TestGraphUtils.getLongLongVertexData(env),
                                 TestGraphUtils.getLongLongEdgeData(env), env);
 
-                        graph.getNeighborhoodGraph(1L, 2).getVertexIds().writeAsText(resultPath);
+                        graph.getDeltaNeighborhoodGraph(1L, 2).getVertexIds().writeAsText(resultPath);
                         env.execute();
                         return "1\n" +
                                 "2\n" +
@@ -102,7 +102,7 @@ public class TestGetNeighborhoodGraph extends JavaProgramTestBase {
                         Graph<Long, Long, Long> graph = Graph.create(TestGraphUtils.getLongLongVertexData(env),
                                 TestGraphUtils.getLongLongEdgeData(env), env);
 
-                        graph.getNeighborhoodGraph(1L, 1).getEdgeIds().writeAsCsv(resultPath);
+                        graph.getDeltaNeighborhoodGraph(1L, 1).getEdgeIds().writeAsCsv(resultPath);
                         env.execute();
                         return "1,2\n" +
                                 "1,3\n" +
@@ -117,7 +117,7 @@ public class TestGetNeighborhoodGraph extends JavaProgramTestBase {
                         Graph<Long, Long, Long> graph = Graph.create(TestGraphUtils.getLongLongVertexData(env),
                                 TestGraphUtils.getLongLongEdgeData(env), env);
 
-                        graph.getNeighborhoodGraph(1L, 2).getEdgeIds().writeAsCsv(resultPath);
+                        graph.getDeltaNeighborhoodGraph(1L, 2).getEdgeIds().writeAsCsv(resultPath);
                         env.execute();
                         return "1,2\n" +
                         		"1,3\n" +
@@ -137,7 +137,7 @@ public class TestGetNeighborhoodGraph extends JavaProgramTestBase {
                         		TestGraphUtils.getMoreLongLongEdgeData(env),
                         		env);
 
-                        graph.getNeighborhoodGraph(1L, 2).getEdgeIds().writeAsCsv(resultPath);
+                        graph.getDeltaNeighborhoodGraph(1L, 2).getEdgeIds().writeAsCsv(resultPath);
                         env.execute();
                         return "1,2\n" +
                         		"1,3\n" +
@@ -159,7 +159,7 @@ public class TestGetNeighborhoodGraph extends JavaProgramTestBase {
                         		TestGraphUtils.getMoreLongLongEdgeData(env),
                         		env);
 
-                        graph.getNeighborhoodGraph(1L, 2).getVertexIds().writeAsText(resultPath);
+                        graph.getDeltaNeighborhoodGraph(1L, 2).getVertexIds().writeAsText(resultPath);
                         env.execute();
                         return "1\n" +
 		                        "2\n" +
@@ -179,7 +179,7 @@ public class TestGetNeighborhoodGraph extends JavaProgramTestBase {
                         		TestGraphUtils.getMoreLongLongEdgeData(env),
                         		env);
 
-                        graph.getNeighborhoodGraph(1L, 3).getEdgeIds().writeAsCsv(resultPath);
+                        graph.getDeltaNeighborhoodGraph(1L, 3).getEdgeIds().writeAsCsv(resultPath);
                         env.execute();
                         return "1,2\n" +
                         		"1,3\n" +

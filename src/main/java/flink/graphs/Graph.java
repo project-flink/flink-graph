@@ -806,7 +806,7 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
     	if (distance == 1) {
     		DataSet<Tuple2<K, VV>> sourceVertex = this.getVertices().filter(
     				new SelectVertex<K, VV>(srcVertexId));
-    		
+
     		DataSet<Tuple2<K, VV>> sourceNeighbors = this.getNeighbors(srcVertexId);
     		
     		return Graph.create(sourceVertex.union(sourceNeighbors), this.getEdges()
@@ -827,19 +827,14 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
     			.join(this.getEdges()).where(0).equalTo(1)
     			.with(new ProjectEdgeOnly<K, EV>());
 
-    	DataSet<Tuple1<K>> newVertexIds = intermediateInEdges.union(intermediateOutEdges)
-    			.flatMap(new ProjectVertexIdFromEdge<K, EV>()).distinct(); 
-    	
-    	DataSet<Tuple3<K, K, EV>> newEdges = newVertexIds.join(this.getEdges())
-    			.where(0).equalTo(0)
-    			.with(new ProjectEdgeOnly<K, EV>());
-    	
-    	DataSet<Tuple3<K, K, EV>> newSolutionSet = iteration.getSolutionSet()
-    			.coGroup(newEdges).where(0, 1).equalTo(0, 1)
-    			.with(new ProjectTheNonEmpty<K, EV>());
+    	DataSet<Tuple3<K, K, EV>> allNewEdges = intermediateInEdges.union(intermediateOutEdges)
+    			.distinct(); 
 
-    	DataSet<Tuple3<K, K, EV>> finalEdges = 
-    			iteration.closeWith(newSolutionSet, newVertexIds);
+    	DataSet<Tuple1<K>> newVertexIds = allNewEdges.flatMap(new ProjectVertexIdFromEdge<K, EV>())
+    			.distinct().coGroup(iteration.getWorkset())
+    			.where(0).equalTo(0).with(new SetDifferenceCoGroup<K>(srcVertexId));
+
+    	DataSet<Tuple3<K, K, EV>> finalEdges = iteration.closeWith(allNewEdges, newVertexIds);
     	
     	DataSet<Tuple1<K>> finalVertexIds = finalEdges
     			.flatMap(new ProjectVertexIdFromEdge<K, EV>()).distinct();
@@ -849,20 +844,32 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
     	
     	return Graph.create(finalVertices, finalEdges, context);
     }
-    
-    private static final class ProjectTheNonEmpty<K, EV> implements CoGroupFunction<
-    	Tuple3<K, K, EV>, Tuple3<K, K, EV>, Tuple3<K, K, EV>> {
-		public void coGroup(Iterable<Tuple3<K, K, EV>> first,
-				Iterable<Tuple3<K, K, EV>> second, Collector<Tuple3<K, K, EV>> out) {
 
-			Iterator<Tuple3<K, K, EV>> firstIterator = first.iterator();
-			Iterator<Tuple3<K, K, EV>> secondIterator = second.iterator();
+    private final static class SetDifferenceCoGroup<K> implements CoGroupFunction<
+    	Tuple1<K>, Tuple1<K>, Tuple1<K>> {
 
-			if (firstIterator.hasNext()) {
-				out.collect(firstIterator.next());
+    	private K srcId;
+
+    	public SetDifferenceCoGroup(K vertexId) {
+    		this.srcId = vertexId;
+    	}
+
+		public void coGroup(Iterable<Tuple1<K>> first,
+				Iterable<Tuple1<K>> second, Collector<Tuple1<K>> out) {
+			Iterator<Tuple1<K>> firstIterator = first.iterator();
+			Iterator<Tuple1<K>> secondIterator = second.iterator();
+
+			if (!(firstIterator.hasNext())) {
+				Tuple1<K> toReturn = secondIterator.next();
+				if (!(toReturn.f0.equals(srcId))) {
+					out.collect(toReturn);
+				}
 			}
-			else if (secondIterator.hasNext()) {
-				out.collect(secondIterator.next());
+			else if (!(secondIterator.hasNext())) {
+				Tuple1<K> toReturn = firstIterator.next();
+				if (!(toReturn.f0.equals(srcId))) {
+					out.collect(toReturn);
+				}
 			}
 		}
     }
