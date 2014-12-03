@@ -39,6 +39,7 @@ import org.apache.flink.api.java.functions.FunctionAnnotation.ConstantFields;
 import org.apache.flink.api.java.functions.FunctionAnnotation.ConstantFieldsFirst;
 import org.apache.flink.api.java.io.CsvReader;
 import org.apache.flink.api.java.operators.DeltaIteration;
+import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.apache.flink.api.java.tuple.Tuple1;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
@@ -720,6 +721,141 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
     					vertexUpdateFunction, messagingFunction, maximumNumberOfIterations));
 		return new Graph<K, VV, EV>(newVertices.map(new Tuple2ToVertexMap<K, VV>()), edges, context);
     }
+  
+    /**
+     * Get the neighbors (in- and out-) of the specified vertex
+     * @param vertexId
+     * @return a dataset containing the neighboring vertices
+     */
+    public DataSet<Tuple2<K, VV>> getNeighbors(K vertexId) {
+    	// get neighbor ids
+    	DataSet<Tuple1<K>> neighborIds = this.getEdges()
+    			.filter(new FilterOnVertexId<K, VV, EV>(vertexId))
+    			.flatMap(new ProjectOtherVertexId<K, EV>(vertexId)).distinct();
+    	// join with vertices
+    	return neighborIds.join(this.getVertices()).where(0).equalTo(0)
+    			.with(new ProjectVertexOnly<K, VV>());
+    }
+
+    /**
+     * Returns the k-neighborhood graph of the given vertex source
+     * @param src
+     * @param distance
+     * @return
+     */
+    public Graph<K, VV, EV> getNeighborhoodGraph(final K srcVertexId, int distance) {
+
+    	if (distance <= 0) {
+    		throw new IllegalArgumentException("Distance has to be  positive");
+    	}
+    	
+    	// if distance == 1: return the source vertex and its neighbors
+    	if (distance == 1) {
+    		DataSet<Tuple2<K, VV>> sourceVertex = this.getVertices().filter(
+    				new SelectVertex<K, VV>(srcVertexId));
+    		
+    		DataSet<Tuple2<K, VV>> sourceNeighbors = this.getNeighbors(srcVertexId);
+    		
+    		return Graph.create(sourceVertex.union(sourceNeighbors), this.getEdges()
+        			.filter(new FilterOnVertexId<K, VV, EV>(srcVertexId)), context);
+    	}
+
+    	// create iteration initial dataset: the neighboring edges of the src
+    	IterativeDataSet<Tuple3<K, K, EV>> initialEdges = this.getEdges()
+    			.filter(new FilterOnVertexId<K, VV, EV>(srcVertexId)).iterate(distance-1);
+    	
+    	DataSet<Tuple1<K>> vertices = initialEdges
+    			.flatMap(new ProjectVertexId<K, EV>()).distinct();
+    	
+    	DataSet<Tuple3<K, K, EV>> outEdges = vertices
+    			.join(this.getEdges()).where(0).equalTo(0)
+				.with(new ProjectEdgeOnly<K, EV>());
+    	
+    	DataSet<Tuple3<K, K, EV>> inEdges = vertices
+    			.join(this.getEdges()).where(0).equalTo(1)
+				.with(new ProjectEdgeOnly<K, EV>());
+    	
+    	DataSet<Tuple3<K, K, EV>> allEdges = inEdges.union(outEdges).distinct();
+
+    	// close the iteration
+    	DataSet<Tuple3<K, K, EV>> finalEdges = initialEdges.closeWith(allEdges);
+    	
+    	DataSet<Tuple1<K>> finalVertexIds = finalEdges
+    			.flatMap(new ProjectVertexId<K, EV>()).distinct();
+    	
+    	DataSet<Tuple2<K, VV>> finalVertices = finalVertexIds.join(this.getVertices())
+    			.where(0).equalTo(0).with(new ProjectVertexOnly<K, VV>());
+
+		return Graph.create(finalVertices, finalEdges, context);
+    }
+    
+    private static final class FilterOnVertexId<K, VV, EV> implements FilterFunction
+    	<Tuple3<K, K, EV>> {
+
+    	private K src;
+    	private FilterOnVertexId(K sourceVertex) {
+    		this.src = sourceVertex;
+    	}
+			public boolean filter(Tuple3<K, K, EV> edge) {
+				return ((edge.f0.equals(src)) || (edge.f1.equals(src)));
+			}
+    }
+    
+    private static final class ProjectVertexId<K, EV> implements FlatMapFunction<
+    	Tuple3<K,K,EV>, Tuple1<K>> {
+		
+    	public void flatMap(Tuple3<K, K, EV> edge, Collector<Tuple1<K>> out) {
+			out.collect(new Tuple1<K>(edge.f0));
+			out.collect(new Tuple1<K>(edge.f1));
+		}
+	}
+    
+    private static final class ProjectOtherVertexId<K, EV> implements FlatMapFunction<
+		Tuple3<K,K,EV>, Tuple1<K>> {
+
+    	private K thisVertexId;
+    	
+    	private ProjectOtherVertexId(K vertexId) {
+    		this.thisVertexId = vertexId;
+    	}
+	
+		public void flatMap(Tuple3<K, K, EV> edge, Collector<Tuple1<K>> out) {
+			if (edge.f0.equals(thisVertexId)) {
+				out.collect(new Tuple1<K>(edge.f1));
+			}
+			else {
+				out.collect(new Tuple1<K>(edge.f0));
+			}
+		}
+    }
+    
+    private static final class ProjectEdgeOnly<K, EV> implements FlatJoinFunction<
+    	Tuple1<K>, Tuple3<K,K,EV>, Tuple3<K,K,EV>> {
+		public void join(Tuple1<K> vertexId, Tuple3<K, K, EV> edge,
+				Collector<Tuple3<K, K, EV>> out) {
+			out.collect(edge);
+		}
+	}
+    
+    private static final class ProjectVertexOnly<K, VV> implements FlatJoinFunction<
+    	Tuple1<K>,	Tuple2<K,VV>, Tuple2<K,VV>> {
+		public void join(Tuple1<K> vertexId, Tuple2<K, VV> vertex,
+				Collector<Tuple2<K, VV>> out) {
+			out.collect(vertex);
+		}
+    }
+    
+    private static final class SelectVertex<K, VV> implements FilterFunction<Tuple2<K, VV>> {
+    	private K vertexId;
+    	
+    	private SelectVertex(K srcId) {
+    		this.vertexId = srcId;
+    	}
+
+    	public boolean filter(Tuple2<K, VV> vertex) throws Exception {
+			return (vertex.f0.equals(vertexId));
+		}
+	} 
 
 	/**
      	 * Creates a graph from the given vertex and edge collections
@@ -766,5 +902,4 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 		DataSet<Edge<K, EV>> edges = env.fromCollection(e);
 		return Graph.create(edges, mapper, env);
 	}
-
 }
