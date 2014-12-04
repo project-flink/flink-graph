@@ -35,38 +35,38 @@ public class TestGraphUtils {
 		return env.fromCollection(edges);
 	}
 	
-	public static final DataSet<Tuple2<Long, Long>> getMoreLongLongVertexData(
+	public static final DataSet<Vertex<Long, Long>> getMoreLongLongVertexData(
 			ExecutionEnvironment env) {
-		List<Tuple2<Long, Long>> vertices = new ArrayList<Tuple2<Long, Long>>();
-		vertices.add(new Tuple2<Long, Long>(1L, 1L));
-		vertices.add(new Tuple2<Long, Long>(2L, 2L));
-		vertices.add(new Tuple2<Long, Long>(3L, 3L));
-		vertices.add(new Tuple2<Long, Long>(4L, 4L));
-		vertices.add(new Tuple2<Long, Long>(5L, 5L));
-		vertices.add(new Tuple2<Long, Long>(6L, 6L));
-		vertices.add(new Tuple2<Long, Long>(7L, 7L));
-		vertices.add(new Tuple2<Long, Long>(8L, 8L));
-		vertices.add(new Tuple2<Long, Long>(9L, 9L));
+		List<Vertex<Long, Long>> vertices = new ArrayList<Vertex<Long, Long>>();
+		vertices.add(new Vertex<Long, Long>(1L, 1L));
+		vertices.add(new Vertex<Long, Long>(2L, 2L));
+		vertices.add(new Vertex<Long, Long>(3L, 3L));
+		vertices.add(new Vertex<Long, Long>(4L, 4L));
+		vertices.add(new Vertex<Long, Long>(5L, 5L));
+		vertices.add(new Vertex<Long, Long>(6L, 6L));
+		vertices.add(new Vertex<Long, Long>(7L, 7L));
+		vertices.add(new Vertex<Long, Long>(8L, 8L));
+		vertices.add(new Vertex<Long, Long>(9L, 9L));
 		
 		return env.fromCollection(vertices);
 	}
 	
-	public static final DataSet<Tuple3<Long, Long, Long>> getMoreLongLongEdgeData(
+	public static final DataSet<Edge<Long, Long>> getMoreLongLongEdgeData(
 			ExecutionEnvironment env) {
-		List<Tuple3<Long, Long, Long>> edges = new ArrayList<Tuple3<Long, Long, Long>>();
-		edges.add(new Tuple3<Long,Long, Long>(1L, 2L, 12L));
-		edges.add(new Tuple3<Long,Long, Long>(1L, 3L, 13L));
-		edges.add(new Tuple3<Long,Long, Long>(2L, 3L, 23L));
-		edges.add(new Tuple3<Long,Long, Long>(3L, 4L, 34L));
-		edges.add(new Tuple3<Long,Long, Long>(3L, 5L, 35L));
-		edges.add(new Tuple3<Long,Long, Long>(4L, 5L, 45L));
-		edges.add(new Tuple3<Long,Long, Long>(5L, 1L, 51L));
+		List<Edge<Long, Long>> edges = new ArrayList<Edge<Long, Long>>();
+		edges.add(new Edge<Long, Long>(1L, 2L, 12L));
+		edges.add(new Edge<Long, Long>(1L, 3L, 13L));
+		edges.add(new Edge<Long, Long>(2L, 3L, 23L));
+		edges.add(new Edge<Long, Long>(3L, 4L, 34L));
+		edges.add(new Edge<Long, Long>(3L, 5L, 35L));
+		edges.add(new Edge<Long, Long>(4L, 5L, 45L));
+		edges.add(new Edge<Long, Long>(5L, 1L, 51L));
 
-		edges.add(new Tuple3<Long,Long, Long>(5L, 6L, 56L));
-		edges.add(new Tuple3<Long,Long, Long>(6L, 7L, 67L));
-		edges.add(new Tuple3<Long,Long, Long>(7L, 5L, 75L));
-		edges.add(new Tuple3<Long,Long, Long>(4L, 8L, 48L));
-		edges.add(new Tuple3<Long,Long, Long>(4L, 9L, 49L));
+		edges.add(new Edge<Long, Long>(5L, 6L, 56L));
+		edges.add(new Edge<Long, Long>(6L, 7L, 67L));
+		edges.add(new Edge<Long, Long>(7L, 5L, 75L));
+		edges.add(new Edge<Long, Long>(4L, 8L, 48L));
+		edges.add(new Edge<Long, Long>(4L, 9L, 49L));
 		
 		return env.fromCollection(edges);
 	}
