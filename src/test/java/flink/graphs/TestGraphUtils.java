@@ -38,6 +38,21 @@ public class TestGraphUtils {
 	}
 
 	/**
+	 * A graph with invalid vertex ids
+	 */
+	public static final DataSet<Tuple2<Long, Long>> getLongLongInvalidVertexData(
+			ExecutionEnvironment env) {
+		List<Tuple2<Long, Long>> vertices = new ArrayList<Tuple2<Long, Long>>();
+		vertices.add(new Tuple2<Long, Long>(15L, 1L));
+		vertices.add(new Tuple2<Long, Long>(2L, 2L));
+		vertices.add(new Tuple2<Long, Long>(3L, 3L));
+		vertices.add(new Tuple2<Long, Long>(4L, 4L));
+		vertices.add(new Tuple2<Long, Long>(5L, 5L));
+
+		return env.fromCollection(vertices);
+	}
+
+	/**
 	 * A graph that has at least one vertex with no ingoing/outgoing edges
 	 */
 	public static final DataSet<Tuple3<Long, Long, Long>> getLongLongEdgeDataWithZeroDegree(

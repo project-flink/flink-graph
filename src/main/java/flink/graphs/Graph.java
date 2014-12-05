@@ -19,6 +19,7 @@
 package flink.graphs;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -37,6 +38,7 @@ import org.apache.flink.api.java.aggregation.Aggregations;
 import org.apache.flink.api.java.functions.FunctionAnnotation.ConstantFields;
 import org.apache.flink.api.java.functions.FunctionAnnotation.ConstantFieldsFirst;
 import org.apache.flink.api.java.io.CsvReader;
+import org.apache.flink.api.java.io.LocalCollectionOutputFormat;
 import org.apache.flink.api.java.operators.DeltaIteration;
 import org.apache.flink.api.java.tuple.Tuple1;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -60,29 +62,42 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 
 	private final DataSet<Tuple3<K, K, EV>> edges;
 
+	private final GraphValidator<K, VV, EV> validator;
+
 	private boolean isUndirected;
 
 	private static TypeInformation<?> keyType;
 	private static TypeInformation<?> vertexValueType;
 	private static TypeInformation<?> edgeValueType;
 
-
 	public Graph(DataSet<Tuple2<K, VV>> vertices, DataSet<Tuple3<K, K, EV>> edges, ExecutionEnvironment context) {
 
 		/** a graph is directed by default */
-		this(vertices, edges, context, false);
+		this(vertices, edges, context, new DummyValidator(vertices, edges));
 	}
 
 	public Graph(DataSet<Tuple2<K, VV>> vertices, DataSet<Tuple3<K, K, EV>> edges, ExecutionEnvironment context,
-			boolean undirected) {
+				 boolean undirected) {
+		this(vertices, edges, context, undirected, new DummyValidator<K, VV, EV>(vertices, edges));
+	}
+
+	public Graph(DataSet<Tuple2<K, VV>> vertices, DataSet<Tuple3<K, K, EV>> edges, ExecutionEnvironment context,
+			boolean undirected, GraphValidator<K, VV, EV> validator) {
 		this.vertices = vertices;
 		this.edges = edges;
         this.context = context;
 		this.isUndirected = undirected;
-		
+		this.validator = validator;
+
 		Graph.keyType = ((TupleTypeInfo<?>) vertices.getType()).getTypeAt(0);
 		Graph.vertexValueType = ((TupleTypeInfo<?>) vertices.getType()).getTypeAt(1);
 		Graph.edgeValueType = ((TupleTypeInfo<?>) edges.getType()).getTypeAt(2);
+	}
+
+	public Graph(DataSet<Tuple2<K, VV>> vertices, DataSet<Tuple3<K, K, EV>> edges, ExecutionEnvironment context,
+				 GraphValidator<K, VV, EV> validator) {
+
+		this(vertices, edges, context, false, validator);
 	}
 
 	public DataSet<Tuple2<K, VV>> getVertices() {
@@ -124,6 +139,23 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 			return new TupleTypeInfo<Tuple2<K, NV>>(keyType, newVertexValueType);
 		}
     }
+
+	private static final class DummyValidator<K extends Comparable<K> & Serializable,
+			VV extends Serializable, EV extends Serializable> extends GraphValidator<K, VV, EV> {
+
+		public DummyValidator(DataSet<Tuple2<K, VV>> inputVertices,
+							  DataSet<Tuple3<K, K, EV>> inputEdges) {
+			super(inputVertices, inputEdges);
+		}
+
+		@Override
+		public DataSet<Boolean> validateGraph() throws Exception {
+			List<Boolean> trueList = new ArrayList<>();
+			trueList.add(true);
+			return ExecutionEnvironment.getExecutionEnvironment().fromCollection(trueList);
+		}
+
+	}
     
     /**
      * Apply a function to the attribute of each edge in the graph.
@@ -376,7 +408,7 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 				.distinct().map(new ApplyMapperToVertexValuesWithType<K, VV>(mapper));
 		return new Graph<K, VV, EV>(vertices, edges, context);
 	}
-	
+
 	private static final class ApplyMapperToVertexValuesWithType<K, VV> implements MapFunction
 		<Tuple1<K>, Tuple2<K, VV>>, ResultTypeQueryable<Tuple2<K, VV>> {
 
@@ -417,6 +449,16 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 			out.collect(new Tuple1<K>(edge.f0));
 			out.collect(new Tuple1<K>(edge.f1));
 		}	
+	}
+
+	/**
+	 * Function that checks whether a graph's ids are valid
+	 * @return
+	 */
+	public <K extends Comparable<K> & Serializable, VV extends Serializable, EV extends Serializable> DataSet<Boolean>
+		validate() throws Exception {
+
+		return validator.validateGraph();
 	}
 
 	/**
