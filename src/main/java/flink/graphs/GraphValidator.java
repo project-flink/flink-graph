@@ -1,21 +1,10 @@
 package flink.graphs;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.aggregation.Aggregations;
-import org.apache.flink.api.java.functions.FunctionAnnotation;
-import org.apache.flink.api.java.io.LocalCollectionOutputFormat;
-import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple1;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.util.Collector;
 
 /**
@@ -28,11 +17,11 @@ import org.apache.flink.util.Collector;
 public class GraphValidator<K extends Comparable<K> & Serializable, VV extends Serializable,
 	EV extends Serializable> implements Serializable {
 	
-	private final DataSet<Tuple2<K, VV>> vertices;
-	private final DataSet<Tuple3<K, K, EV>> edges;
+	private final DataSet<Vertex<K, VV>> vertices;
+	private final DataSet<Edge<K, EV>> edges;
 
-	public GraphValidator(DataSet<Tuple2<K, VV>> inputVertices, 
-			DataSet<Tuple3<K, K, EV>> inputEdges) {
+	public GraphValidator(DataSet<Vertex<K, VV>> inputVertices,
+			DataSet<Edge<K, EV>> inputEdges) {
 		this.vertices = inputVertices;
 		this.edges = inputEdges;
 	}
@@ -50,23 +39,26 @@ public class GraphValidator<K extends Comparable<K> & Serializable, VV extends S
 		 DataSet<K> invalidIds = vertices.coGroup(edgeIds).where(0).equalTo(0)
 				 .with(new GroupInvalidIds<K, VV>()).first(1);
 
-		 return GraphUtils.count(invalidIds.map(new KToTupleMap())).map(new InvalidIdsMap());
+		 return GraphUtils.count(invalidIds.map(new KToTupleMap()), ExecutionEnvironment.getExecutionEnvironment())
+				 .map(new InvalidIdsMap());
 	}
 
-	private static final class MapEdgeIds<K, EV> implements FlatMapFunction<Tuple3<K, K, EV>,
+	private static final class MapEdgeIds<K extends Comparable<K> & Serializable,
+			EV extends Serializable> implements FlatMapFunction<Edge<K, EV>,
 			Tuple1<K>> {
 
 		@Override
-		public void flatMap(Tuple3<K, K, EV> edge, Collector<Tuple1<K>> out) {
+		public void flatMap(Edge<K, EV> edge, Collector<Tuple1<K>> out) {
 			out.collect(new Tuple1<K>(edge.f0));
 			out.collect(new Tuple1<K>(edge.f1));
 		}
 	}
 
-	private static final class GroupInvalidIds<K, VV> implements CoGroupFunction<Tuple2<K, VV>, Tuple1<K>, K> {
+	private static final class GroupInvalidIds<K extends Comparable<K> & Serializable,
+	VV extends Serializable> implements CoGroupFunction<Vertex<K, VV>, Tuple1<K>, K> {
 
 		@Override
-		public void coGroup(Iterable<Tuple2<K, VV>> vertexId,
+		public void coGroup(Iterable<Vertex<K, VV>> vertexId,
 							Iterable<Tuple1<K>> edgeId, Collector<K> out) {
 			if (!(vertexId.iterator().hasNext())) {
 				// found an id that doesn't exist in the vertex set

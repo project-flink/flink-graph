@@ -1,5 +1,4 @@
 package flink.graphs;
-import org.apache.avro.generic.GenericData;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.DataSet;
@@ -12,15 +11,15 @@ import java.util.List;
 @SuppressWarnings("serial")
 public class GraphUtils {
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public static DataSet<Integer> count(DataSet set) {
-        List<Integer> nullValueList = new ArrayList<>();
-        nullValueList.add(0);
-        DataSet<Integer> nullValue = ExecutionEnvironment.getExecutionEnvironment().fromCollection(nullValueList);
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public static DataSet<Integer> count(DataSet set, ExecutionEnvironment env) {
+		List<Integer> list = new ArrayList<>();
+		list.add(0);
+		DataSet<Integer> initialCount = env.fromCollection(list);
 
         return set
                 .map(new OneMapper())
-                .union(nullValue)
+                .union(initialCount)
                 .reduce(new AddOnesReducer())
                 .first(1);
     }

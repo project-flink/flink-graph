@@ -195,8 +195,8 @@ public class TestGraphCreation extends JavaProgramTestBase {
 				 * Test validate():
 				 */
 					final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-					DataSet<Tuple2<Long, Long>> vertices = TestGraphUtils.getLongLongVertexData(env);
-					DataSet<Tuple3<Long, Long, Long>> edges = TestGraphUtils.getLongLongEdgeData(env);
+					DataSet<Vertex<Long, Long>> vertices = TestGraphUtils.getLongLongVertexData(env);
+					DataSet<Edge<Long, Long>> edges = TestGraphUtils.getLongLongEdgeData(env);
 					Graph<Long, Long, Long> graph = new Graph(vertices, edges, env,
 							new GraphValidator<Long, Long, Long>(vertices, edges));
 					DataSet<Boolean> result = graph.validate();
@@ -210,8 +210,8 @@ public class TestGraphCreation extends JavaProgramTestBase {
 				 * Test validate() - invalid vertex ids
 				 */
 					final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-					DataSet<Tuple2<Long, Long>> vertices = TestGraphUtils.getLongLongInvalidVertexData(env);
-					DataSet<Tuple3<Long, Long, Long>> edges = TestGraphUtils.getLongLongEdgeData(env);
+					DataSet<Vertex<Long, Long>> vertices = TestGraphUtils.getLongLongInvalidVertexData(env);
+					DataSet<Edge<Long, Long>> edges = TestGraphUtils.getLongLongEdgeData(env);
 
 					Graph<Long, Long, Long> graph = new Graph(vertices, edges, env,
 							new GraphValidator<Long, Long, Long>(vertices, edges));
