@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
@@ -21,7 +22,7 @@ import flink.graphs.TestGraphUtils.DummyCustomType;
 @RunWith(Parameterized.class)
 public class TestGraphCreation extends JavaProgramTestBase {
 
-	private static int NUM_PROGRAMS = 6;
+	private static int NUM_PROGRAMS = 8;
 	
 	private int curProgId = config.getInteger("ProgramId", -1);
 	private String resultPath;
@@ -188,6 +189,37 @@ public class TestGraphCreation extends JavaProgramTestBase {
 					"4,(8.0,3)\n" + 
 					"5,(10.0,4)\n";
 			}
+				case 7: {
+				/*
+				 * Test validate():
+				 */
+					final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+					DataSet<Vertex<Long, Long>> vertices = TestGraphUtils.getLongLongVertexData(env);
+					DataSet<Edge<Long, Long>> edges = TestGraphUtils.getLongLongEdgeData(env);
+					Graph<Long, Long, Long> graph = new Graph(vertices, edges, env,
+							new GraphValidator<Long, Long, Long>(vertices, edges));
+					DataSet<Boolean> result = graph.validate();
+					result.writeAsText(resultPath);
+					env.execute();
+
+					return "true\n";
+				}
+				case 8: {
+				/*
+				 * Test validate() - invalid vertex ids
+				 */
+					final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+					DataSet<Vertex<Long, Long>> vertices = TestGraphUtils.getLongLongInvalidVertexData(env);
+					DataSet<Edge<Long, Long>> edges = TestGraphUtils.getLongLongEdgeData(env);
+
+					Graph<Long, Long, Long> graph = new Graph(vertices, edges, env,
+							new GraphValidator<Long, Long, Long>(vertices, edges));
+					DataSet<Boolean> result = graph.validate();
+					result.writeAsText(resultPath);
+					env.execute();
+
+					return "false\n";
+				}
 			default: 
 				throw new IllegalArgumentException("Invalid program id");
 			}
