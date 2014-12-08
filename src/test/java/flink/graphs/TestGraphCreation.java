@@ -2,6 +2,7 @@ package flink.graphs;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.LinkedList;
 
@@ -196,9 +197,8 @@ public class TestGraphCreation extends JavaProgramTestBase {
 					final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 					DataSet<Vertex<Long, Long>> vertices = TestGraphUtils.getLongLongVertexData(env);
 					DataSet<Edge<Long, Long>> edges = TestGraphUtils.getLongLongEdgeData(env);
-					Graph<Long, Long, Long> graph = new Graph(vertices, edges, env,
-							new GraphValidator<Long, Long, Long>(vertices, edges));
-					DataSet<Boolean> result = graph.validate();
+					Graph<Long, Long, Long> graph = new Graph(vertices, edges, env);
+					DataSet<Boolean> result = graph.validate(new InvalidVertexIdsValidator());
 					result.writeAsText(resultPath);
 					env.execute();
 
@@ -212,9 +212,8 @@ public class TestGraphCreation extends JavaProgramTestBase {
 					DataSet<Vertex<Long, Long>> vertices = TestGraphUtils.getLongLongInvalidVertexData(env);
 					DataSet<Edge<Long, Long>> edges = TestGraphUtils.getLongLongEdgeData(env);
 
-					Graph<Long, Long, Long> graph = new Graph(vertices, edges, env,
-							new GraphValidator<Long, Long, Long>(vertices, edges));
-					DataSet<Boolean> result = graph.validate();
+					Graph<Long, Long, Long> graph = new Graph(vertices, edges, env);
+					DataSet<Boolean> result = graph.validate(new InvalidVertexIdsValidator());
 					result.writeAsText(resultPath);
 					env.execute();
 

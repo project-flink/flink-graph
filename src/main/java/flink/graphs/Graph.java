@@ -20,7 +20,6 @@
 package flink.graphs;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -61,62 +60,28 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 
 	private final DataSet<Edge<K, EV>> edges;
 
-	private final GraphValidator<K, VV, EV> validator;
-
 	private boolean isUndirected;
 
 	private static TypeInformation<?> keyType;
 	private static TypeInformation<?> vertexValueType;
 	private static TypeInformation<?> edgeValueType;
 
-
 	public Graph(DataSet<Vertex<K, VV>> vertices, DataSet<Edge<K, EV>> edges, ExecutionEnvironment context) {
 
 		/** a graph is directed by default */
-		this(vertices, edges, context, new DummyValidator<K, VV, EV>(vertices, edges));
+		this(vertices, edges, context, false);
 	}
 
 	public Graph(DataSet<Vertex<K, VV>> vertices, DataSet<Edge<K, EV>> edges, ExecutionEnvironment context,
-				 boolean undirected) {
-
-		this(vertices, edges, context, undirected, new DummyValidator<K, VV, EV>(vertices, edges));
-	}
-
-	public Graph(DataSet<Vertex<K, VV>> vertices, DataSet<Edge<K, EV>> edges, ExecutionEnvironment context,
-			boolean undirected, GraphValidator<K, VV, EV> validator) {
+			boolean undirected) {
 		this.vertices = vertices;
 		this.edges = edges;
         this.context = context;
 		this.isUndirected = undirected;
-		this.validator = validator;
-		
+
 		Graph.keyType = ((TupleTypeInfo<?>) vertices.getType()).getTypeAt(0);
 		Graph.vertexValueType = ((TupleTypeInfo<?>) vertices.getType()).getTypeAt(1);
 		Graph.edgeValueType = ((TupleTypeInfo<?>) edges.getType()).getTypeAt(2);
-	}
-
-	public Graph(DataSet<Vertex<K, VV>> vertices, DataSet<Edge<K, EV>> edges, ExecutionEnvironment context,
-				 GraphValidator<K, VV, EV> validator) {
-
-		this(vertices, edges, context, false, validator);
-	}
-
-
-	private static final class DummyValidator<K extends Comparable<K> & Serializable,
-			VV extends Serializable, EV extends Serializable> extends GraphValidator<K, VV, EV> {
-
-		public DummyValidator(DataSet<Vertex<K, VV>> inputVertices,
-							  DataSet<Edge<K, EV>> inputEdges) {
-			super(inputVertices, inputEdges);
-		}
-
-		@Override
-		public DataSet<Boolean> validateGraph() throws Exception {
-			List<Boolean> trueList = new ArrayList<>();
-			trueList.add(true);
-			return ExecutionEnvironment.getExecutionEnvironment().fromCollection(trueList);
-		}
-
 	}
 
 	/**
@@ -124,9 +89,9 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 	 * @return
 	 */
 	public <K extends Comparable<K> & Serializable, VV extends Serializable, EV extends Serializable> DataSet<Boolean>
-	validate() throws Exception {
+		validate(GraphValidator<K, VV, EV> validator) throws Exception {
 
-		return validator.validateGraph();
+		return validator.validate((Graph<K, VV, EV>) this);
 	}
 
 	public DataSet<Vertex<K, VV>> getVertices() {
