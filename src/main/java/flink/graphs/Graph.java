@@ -66,7 +66,6 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 	private static TypeInformation<?> vertexValueType;
 	private static TypeInformation<?> edgeValueType;
 
-
 	public Graph(DataSet<Vertex<K, VV>> vertices, DataSet<Edge<K, EV>> edges, ExecutionEnvironment context) {
 
 		/** a graph is directed by default */
@@ -79,10 +78,20 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 		this.edges = edges;
         this.context = context;
 		this.isUndirected = undirected;
-		
+
 		Graph.keyType = ((TupleTypeInfo<?>) vertices.getType()).getTypeAt(0);
 		Graph.vertexValueType = ((TupleTypeInfo<?>) vertices.getType()).getTypeAt(1);
 		Graph.edgeValueType = ((TupleTypeInfo<?>) edges.getType()).getTypeAt(2);
+	}
+
+	/**
+	 * Function that checks whether a graph's ids are valid
+	 * @return
+	 */
+	public <K extends Comparable<K> & Serializable, VV extends Serializable, EV extends Serializable> DataSet<Boolean>
+		validate(GraphValidator<K, VV, EV> validator) throws Exception {
+
+		return validator.validate((Graph<K, VV, EV>) this);
 	}
 
 	public DataSet<Vertex<K, VV>> getVertices() {
@@ -92,7 +101,7 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 	public DataSet<Edge<K, EV>> getEdges() {
 		return edges;
 	}
-    
+
     /**
      * Apply a function to the attribute of each vertex in the graph.
      * @param mapper
