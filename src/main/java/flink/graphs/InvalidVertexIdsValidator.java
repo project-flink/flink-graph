@@ -18,7 +18,6 @@ public class InvalidVertexIdsValidator<K extends Comparable<K> & Serializable, V
      * i.e. that they also exist in the vertex input set.
      * @return a singleton DataSet<Boolean> stating whether a graph is valid
      * with respect to its vertex ids.
-     * @throws InvalidVertexIdException
      */
     @Override
     public DataSet<Boolean> validate(Graph<K, VV, EV> graph) throws Exception {
