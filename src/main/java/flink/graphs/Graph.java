@@ -179,7 +179,61 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 		}
     }
 
-    /**
+	/**
+	 * Method that joins the vertex DataSet with an input DataSet and applies a UDF on the resulted values.
+	 * @param inputDataSet
+	 * @param mapper - the UDF applied
+	 * @return - a new graph where the vertex values have been updated.
+	 */
+	public Graph<K, VV, EV> joinWithVertices(DataSet<Tuple1<K>> inputDataSet,
+											 final MapFunction<VV, VV> mapper) {
+
+		DataSet<Vertex<K, VV>> joinedVertices = this.getVertices()
+				.join(inputDataSet).where(0).equalTo(0)
+				.map(new ApplyMapperToVertexValues<K, VV>(mapper));
+
+		DataSet<Vertex<K, VV>> resultedVertices = this.getVertices()
+				.coGroup(joinedVertices).where(0).equalTo(0)
+				.with(new ApplyCoGroupToVertexValues<K, VV>());
+
+		return Graph.create(resultedVertices, this.getEdges(), this.getContext());
+	}
+
+	private static final class ApplyMapperToVertexValues<K extends Comparable<K> & Serializable, VV extends Serializable>
+			implements MapFunction<Tuple2<Vertex<K, VV>,Tuple1<K>>, Vertex<K, VV>> {
+
+		private MapFunction<VV, VV> innerMapper;
+
+		public ApplyMapperToVertexValues(MapFunction<VV, VV> theMapper) {
+			this.innerMapper = theMapper;
+		}
+
+		@Override
+		public Vertex<K, VV> map(Tuple2<Vertex<K, VV>, Tuple1<K>> value) throws Exception {
+			return new Vertex<K, VV>(value.f0.f0, innerMapper.map(value.f0.f1));
+		}
+
+	}
+
+	private static final class ApplyCoGroupToVertexValues<K extends Comparable<K> & Serializable, VV extends Serializable>
+			implements CoGroupFunction<Vertex<K, VV>, Vertex<K, VV>, Vertex<K, VV>> {
+
+		@Override
+		public void coGroup(Iterable<Vertex<K, VV>> iterableDS1, Iterable<Vertex<K, VV>> iterableDS2,
+							Collector<Vertex<K, VV>> collector) throws Exception {
+
+			Iterator<Vertex<K, VV>> iteratorDS1 = iterableDS1.iterator();
+			Iterator<Vertex<K, VV>> iteratorDS2 = iterableDS2.iterator();
+
+			if(iteratorDS2.hasNext()) {
+				collector.collect(iteratorDS2.next());
+			} else {
+				collector.collect(iteratorDS1.next());
+			}
+		}
+	}
+
+	/**
      * Apply value-based filtering functions to the graph 
      * and return a sub-graph that satisfies the predicates
      * for both vertex values and edge values.
