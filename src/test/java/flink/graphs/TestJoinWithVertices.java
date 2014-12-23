@@ -1,26 +1,22 @@
 package flink.graphs;
 
-import org.apache.flink.api.common.functions.CoGroupFunction;
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.tuple.Tuple1;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.test.util.JavaProgramTestBase;
-import org.apache.flink.util.Collector;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedList;
 
 @RunWith(Parameterized.class)
 public class TestJoinWithVertices extends JavaProgramTestBase {
 
-    private static int NUM_PROGRAMS = 2;
+    private static int NUM_PROGRAMS = 3;
 
     private int curProgId = config.getInteger("ProgramId", -1);
     private String resultPath;
@@ -46,7 +42,7 @@ public class TestJoinWithVertices extends JavaProgramTestBase {
     }
 
     @Parameterized.Parameters
-    public static Collection<Object[]> getConfigurations() throws FileNotFoundException, IOException {
+    public static Collection<Object[]> getConfigurations() throws IOException {
 
         LinkedList<Configuration> tConfigs = new LinkedList<Configuration>();
 
@@ -75,17 +71,18 @@ public class TestJoinWithVertices extends JavaProgramTestBase {
                     Graph<Long, Long, Long> graph = Graph.create(TestGraphUtils.getLongLongVertexData(env),
                             TestGraphUtils.getLongLongEdgeData(env), env);
 
-                    Graph<Long, Long, Long> result = graph.joinWithVertices(graph.getVertexIds()
-                                    .map(new MapFunction<Long, Tuple1<Long>>() {
+                    Graph<Long, Long, Long> result = graph.joinWithVertices(graph.getVertices()
+                                    .map(new MapFunction<Vertex<Long, Long>, Tuple2<Long, Long>>() {
                                         @Override
-                                        public Tuple1<Long> map(Long aLong) throws Exception {
-                                            return new Tuple1<Long>(aLong);
+                                        public Tuple2<Long, Long> map(Vertex<Long, Long> vertex) throws Exception {
+                                            return new Tuple2<Long, Long>(vertex.getId(), vertex.getValue());
                                         }
                                     }),
-                            new MapFunction<Long, Long>() {
+                            new MapFunction<Tuple2<Long, Long>, Long>() {
+
                                 @Override
-                                public Long map(Long aLong) throws Exception {
-                                    return new Long(aLong * 2);
+                                public Long map(Tuple2<Long, Long> tuple) throws Exception {
+                                    return tuple.f0 + tuple.f1;
                                 }
                             });
 
@@ -101,24 +98,26 @@ public class TestJoinWithVertices extends JavaProgramTestBase {
 
                 case 2: {
 				/*
-				 * Test joinWithVertices
+				 * Test joinWithVertices with the input DataSet passed as a parameter containing
+				 * less elements than the vertex DataSet, but of the same type
 				 */
                     final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
                     Graph<Long, Long, Long> graph = Graph.create(TestGraphUtils.getLongLongVertexData(env),
                             TestGraphUtils.getLongLongEdgeData(env), env);
 
-                    Graph<Long, Long, Long> result = graph.joinWithVertices(graph.getVertexIds().first(3)
-                                    .map(new MapFunction<Long, Tuple1<Long>>() {
+                    Graph<Long, Long, Long> result = graph.joinWithVertices(graph.getVertices().first(3)
+                                    .map(new MapFunction<Vertex<Long, Long>, Tuple2<Long, Long>>() {
                                         @Override
-                                        public Tuple1<Long> map(Long aLong) throws Exception {
-                                            return new Tuple1<Long>(aLong);
+                                        public Tuple2<Long, Long> map(Vertex<Long, Long> vertex) throws Exception {
+                                            return new Tuple2<Long, Long>(vertex.getId(), vertex.getValue());
                                         }
                                     }),
-                            new MapFunction<Long, Long>() {
+                            new MapFunction<Tuple2<Long, Long>, Long>() {
+
                                 @Override
-                                public Long map(Long aLong) throws Exception {
-                                    return new Long(aLong * 2);
+                                public Long map(Tuple2<Long, Long> tuple) throws Exception {
+                                    return tuple.f0 + tuple.f1;
                                 }
                             });
 
@@ -130,7 +129,46 @@ public class TestJoinWithVertices extends JavaProgramTestBase {
                             "3,6\n" +
                             "4,4\n" +
                             "5,5\n";
+                }
 
+                case 3: {
+				/*
+				 * Test joinWithVertices with the input DataSet passed as a parameter containing
+				 * less elements than the vertex DataSet and of a different type(Boolean)
+				 */
+                    final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+
+                    Graph<Long, Long, Long> graph = Graph.create(TestGraphUtils.getLongLongVertexData(env),
+                            TestGraphUtils.getLongLongEdgeData(env), env);
+
+                    Graph<Long, Long, Long> result = graph.joinWithVertices(graph.getVertices().first(3)
+                                    .map(new MapFunction<Vertex<Long, Long>, Tuple2<Long, Boolean>>() {
+                                        @Override
+                                        public Tuple2<Long, Boolean> map(Vertex<Long, Long> vertex) throws Exception {
+                                            return new Tuple2<Long, Boolean>(vertex.getId(), true);
+                                        }
+                                    }),
+                            new MapFunction<Tuple2<Long, Boolean>, Long>() {
+
+                                @Override
+                                public Long map(Tuple2<Long, Boolean> tuple) throws Exception {
+                                    if(tuple.f1) {
+                                        return tuple.f0 * 2;
+                                    }
+                                    else {
+                                        return tuple.f0;
+                                    }
+                                }
+                            });
+
+                    result.getVertices().writeAsCsv(resultPath);
+                    env.execute();
+
+                    return "1,2\n" +
+                            "2,4\n" +
+                            "3,6\n" +
+                            "4,4\n" +
+                            "5,5\n";
                 }
                 default:
                     throw new IllegalArgumentException("Invalid program id");
