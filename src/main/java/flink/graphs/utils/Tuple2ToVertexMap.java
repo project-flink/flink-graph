@@ -7,7 +7,12 @@ import org.apache.flink.api.java.tuple.Tuple2;
 
 import flink.graphs.Vertex;
 
-public class Tuple2ToVertexMap<K extends Comparable<K> & Serializable, 
+/**
+ * Map function that converts a {@link Tuple2} object into a {@link Vertex}.
+ * @param <K> the key type for edge and vertex identifiers
+ * @param <VV> the value type for vertexes
+ */
+public class Tuple2ToVertexMap<K extends Comparable<K> & Serializable,
 	VV extends Serializable> implements MapFunction<Tuple2<K, VV>, Vertex<K, VV>> {
 
 	private static final long serialVersionUID = 1L;
