@@ -1,13 +1,11 @@
 package flink.graphs.library;
 
-
+import flink.graphs.Edge;
 import flink.graphs.Graph;
 import flink.graphs.GraphAlgorithm;
-
-import org.apache.flink.spargel.java.MessageIterator;
-import org.apache.flink.spargel.java.MessagingFunction;
-import org.apache.flink.spargel.java.OutgoingEdge;
-import org.apache.flink.spargel.java.VertexUpdateFunction;
+import flink.graphs.spargel.MessageIterator;
+import flink.graphs.spargel.MessagingFunction;
+import flink.graphs.spargel.VertexUpdateFunction;
 
 import java.io.Serializable;
 
@@ -70,8 +68,8 @@ public class PageRank<K extends Comparable<K> & Serializable> implements GraphAl
 
         @Override
         public void sendMessages(K vertexId, Double newRank) {
-            for (OutgoingEdge<K, Double> edge : getOutgoingEdges()) {
-                sendMessageTo(edge.target(), newRank * edge.edgeValue());
+            for (Edge<K, Double> edge : getOutgoingEdges()) {
+                sendMessageTo(edge.getTarget(), newRank * edge.getValue());
             }
         }
     }
