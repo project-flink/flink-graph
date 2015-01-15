@@ -7,6 +7,11 @@ import org.apache.flink.api.java.tuple.Tuple3;
 
 import flink.graphs.Edge;
 
+/**
+ * Map function that converts an {@link Edge} object into a {@link Tuple3}.
+ * @param <K> the key type for edge and vertex identifiers
+ * @param <EV> the value type for edges
+ */
 public class EdgeToTuple3Map<K extends Comparable<K> & Serializable, 
 	EV extends Serializable> implements MapFunction<Edge<K, EV>, Tuple3<K, K, EV>> {
 
