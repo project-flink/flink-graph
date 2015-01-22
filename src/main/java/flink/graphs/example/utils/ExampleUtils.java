@@ -131,5 +131,16 @@ public class ExampleUtils {
 		
 		return env.fromCollection(edges);
 	}
+
+	public static final String getSSSPVertexResult(){
+		StringBuilder sb = new StringBuilder();
+		sb.append("1 0.0\n");
+		sb.append("2 12.0\n");
+		sb.append("3 13.0\n");
+		sb.append("4 47.0\n");
+		sb.append("5 48.0\n");
+
+		return sb.toString();
+	}
 }
 
