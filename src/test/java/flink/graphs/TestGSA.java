@@ -106,44 +106,47 @@ public class TestGSA extends JavaProgramTestBase {
 							}
 						});
 
-				DataSet<Tuple2<Vertex<Long, Long>, HashSet<Vertex<Long, Long>>>> mappedTriplets = triplets
+				DataSet<Tuple2<Long, HashSet<Vertex<Long, Long>>>> mappedTriplets = triplets
 						.map(new MapFunction<Tuple3<Vertex<Long, Long>, Edge<Long, Long>, Vertex<Long, Long>>,
-								Tuple2<Vertex<Long, Long>, HashSet<Vertex<Long, Long>>>>() {
+								Tuple2<Long, HashSet<Vertex<Long, Long>>>>() {
 
 							@Override
-							public Tuple2<Vertex<Long, Long>, HashSet<Vertex<Long, Long>>> map(Tuple3<Vertex<Long, Long>,
+							public Tuple2<Long, HashSet<Vertex<Long, Long>>> map(Tuple3<Vertex<Long, Long>,
 									Edge<Long, Long>, Vertex<Long, Long>> triplet)
 									throws Exception {
 
 								HashSet<Vertex<Long, Long>> result = new HashSet<Vertex<Long, Long>>();
 								result.add(triplet.f2);
 
-								return new Tuple2<Vertex<Long, Long>, HashSet<Vertex<Long, Long>>>(triplet.f0, result);
+								return new Tuple2<Long, HashSet<Vertex<Long, Long>>>(triplet.f0.getId(), result);
 							}
 						});
 
-				DataSet<Tuple2<Vertex<Long, Long>, HashSet<Vertex<Long, Long>>>> groupedTriplets = mappedTriplets
+				DataSet<Tuple2<Long, HashSet<Vertex<Long, Long>>>> groupedTriplets = mappedTriplets
 						.groupBy(0)
-						.reduce(new ReduceFunction<Tuple2<Vertex<Long, Long>, HashSet<Vertex<Long, Long>>>>() {
+						.reduce(new ReduceFunction<Tuple2<Long, HashSet<Vertex<Long, Long>>>>() {
 							@Override
-							public Tuple2<Vertex<Long, Long>, HashSet<Vertex<Long, Long>>> reduce(
-									Tuple2<Vertex<Long, Long>, HashSet<Vertex<Long, Long>>> arg0,
-									Tuple2<Vertex<Long, Long>, HashSet<Vertex<Long, Long>>> arg1) throws Exception {
+							public Tuple2<Long, HashSet<Vertex<Long, Long>>> reduce(
+									Tuple2<Long, HashSet<Vertex<Long, Long>>> arg0,
+									Tuple2<Long, HashSet<Vertex<Long, Long>>> arg1) throws Exception {
 
-								// Maybe modifying arg0 is not a good idea here?
-								arg0.f1.addAll(arg1.f1);
-								return arg0;
+								HashSet<Vertex<Long, Long>> result = new HashSet<Vertex<Long, Long>>();
+
+								result.addAll(arg0.f1);
+								result.addAll(arg1.f1);
+
+								return new Tuple2<Long, HashSet<Vertex<Long, Long>>>(arg0.f0, result);
 							}
 						});
 
 				DataSet<Vertex<Long, Long>> newVertices = groupedTriplets
 						.join(graph.getVertices())
-						.where("f0.f0")
+						.where(0)
 						.equalTo(0)
-						.with(new FlatJoinFunction<Tuple2<Vertex<Long,Long>,HashSet<Vertex<Long,Long>>>,
+						.with(new FlatJoinFunction<Tuple2<Long,HashSet<Vertex<Long,Long>>>,
 								Vertex<Long,Long>, Vertex<Long, Long>>() {
 							@Override
-							public void join(Tuple2<Vertex<Long, Long>, HashSet<Vertex<Long, Long>>> set,
+							public void join(Tuple2<Long, HashSet<Vertex<Long, Long>>> set,
 											 Vertex<Long, Long> src, Collector<Vertex<Long, Long>> collector)
 									throws Exception {
 
@@ -155,7 +158,9 @@ public class TestGSA extends JavaProgramTestBase {
 									}
 								}
 
-								collector.collect(new Vertex<Long, Long>(src.getId(), minValue));
+								if (minValue != src.getValue()) {
+									collector.collect(new Vertex<Long, Long>(src.getId(), minValue));
+								}
 							}
 						});
 
