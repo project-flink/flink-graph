@@ -16,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import scala.collection.GenTraversableViewLike;
+import scala.collection.parallel.ParIterableLike;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -80,111 +81,73 @@ public class TestGSA extends JavaProgramTestBase {
 				Graph<Long, Long, Long> graph = Graph.fromDataSet(TestGraphUtils.getLongLongVertexData(env),
 						TestGraphUtils.getLongLongEdgeData(env), env);
 
-				final int maxIterations = 16;
-				DeltaIteration<Vertex<Long, Long>, Vertex<Long, Long>> iteration =
-						graph.getVertices().iterateDelta(graph.getVertices(), maxIterations, 0);
+				MapFunction<Tuple3<Vertex<Long, Long>, Edge<Long, Long>, Vertex<Long, Long>>,
+						Tuple2<Long, HashSet<Vertex<Long, Long>>>> gather =
+						new MapFunction<Tuple3<Vertex<Long, Long>, Edge<Long, Long>, Vertex<Long, Long>>,
+						Tuple2<Long, HashSet<Vertex<Long, Long>>>>() {
 
-				DataSet<Tuple3<Vertex<Long, Long>, Edge<Long, Long>, Vertex<Long, Long>>> triplets = iteration
-						.getWorkset()
-						.join(graph.getEdges()
-								.join(graph.getVertices())
-								.where(1)
-								.equalTo(0))
-						.where(0)
-						.equalTo("f0.f0")
-						.with(new FlatJoinFunction<Vertex<Long, Long>, Tuple2<Edge<Long, Long>, Vertex<Long, Long>>,
-								Tuple3<Vertex<Long, Long>, Edge<Long, Long>, Vertex<Long, Long>>>() {
-
-							@Override
-							public void join(Vertex<Long, Long> vertex, Tuple2<Edge<Long, Long>, Vertex<Long, Long>>
-									edgeVertex, Collector<Tuple3<Vertex<Long, Long>, Edge<Long, Long>,
-									Vertex<Long, Long>>> collector) throws Exception {
-
-								collector.collect(new Tuple3<Vertex<Long, Long>, Edge<Long, Long>, Vertex<Long, Long>>(
-										vertex, edgeVertex.f0, edgeVertex.f1
-								));
-							}
-						});
-
-				DataSet<Tuple2<Long, HashSet<Vertex<Long, Long>>>> mappedTriplets = triplets
-						.map(new MapFunction<Tuple3<Vertex<Long, Long>, Edge<Long, Long>, Vertex<Long, Long>>,
-								Tuple2<Long, HashSet<Vertex<Long, Long>>>>() {
-
-							@Override
-							public Tuple2<Long, HashSet<Vertex<Long, Long>>> map(Tuple3<Vertex<Long, Long>,
-									Edge<Long, Long>, Vertex<Long, Long>> triplet)
-									throws Exception {
-
-								HashSet<Vertex<Long, Long>> result = new HashSet<Vertex<Long, Long>>();
-								result.add(triplet.f2);
-
-								return new Tuple2<Long, HashSet<Vertex<Long, Long>>>(triplet.f0.getId(), result);
-							}
-						});
-
-				DataSet<Tuple2<Long, HashSet<Vertex<Long, Long>>>> groupedTriplets = mappedTriplets
-						.groupBy(0)
-						.reduce(new ReduceFunction<Tuple2<Long, HashSet<Vertex<Long, Long>>>>() {
-							@Override
-							public Tuple2<Long, HashSet<Vertex<Long, Long>>> reduce(
-									Tuple2<Long, HashSet<Vertex<Long, Long>>> arg0,
-									Tuple2<Long, HashSet<Vertex<Long, Long>>> arg1) throws Exception {
-
-								HashSet<Vertex<Long, Long>> result = new HashSet<Vertex<Long, Long>>();
-
-								result.addAll(arg0.f1);
-								result.addAll(arg1.f1);
-
-								return new Tuple2<Long, HashSet<Vertex<Long, Long>>>(arg0.f0, result);
-							}
-						});
-
-				DataSet<Vertex<Long, Long>> newVertices = groupedTriplets
-						.join(graph.getVertices())
-						.where(0)
-						.equalTo(0)
-						.with(new FlatJoinFunction<Tuple2<Long,HashSet<Vertex<Long,Long>>>,
-								Vertex<Long,Long>, Vertex<Long, Long>>() {
-							@Override
-							public void join(Tuple2<Long, HashSet<Vertex<Long, Long>>> set,
-											 Vertex<Long, Long> src, Collector<Vertex<Long, Long>> collector)
-									throws Exception {
-
-								// Find the minimum vertex id in the set which will be propagated
-								long minValue = src.getValue();
-								for (Vertex<Long, Long> v : set.f1) {
-									if (v.getValue() < minValue) {
-										minValue = v.getValue();
-									}
-								}
-
-								if (minValue != src.getValue()) {
-									collector.collect(new Vertex<Long, Long>(src.getId(), minValue));
-								}
-							}
-						});
-
-				DataSet<Vertex<Long, Long>> result = iteration.closeWith(newVertices, newVertices);
-				result.print();
-
-				/*
-				Graph<Long, Long, Long> newGraph = graph.joinWithVertices(newVertices, new MapFunction<Tuple2<Long, Long>, Long>() {
 					@Override
-					public Long map(Tuple2<Long, Long> arg) throws Exception {
-						return arg.f1;
-					}
-				});
-				*/
+					public Tuple2<Long, HashSet<Vertex<Long, Long>>> map(Tuple3<Vertex<Long, Long>,
+							Edge<Long, Long>, Vertex<Long, Long>> triplet)
+							throws Exception {
 
-				graph.getVertices().writeAsCsv(resultPath);
+						HashSet<Vertex<Long, Long>> result = new HashSet<Vertex<Long, Long>>();
+						result.add(triplet.f2);
+
+						return new Tuple2<Long, HashSet<Vertex<Long, Long>>>(triplet.f0.getId(), result);
+					}
+				};
+
+				ReduceFunction<Tuple2<Long, HashSet<Vertex<Long, Long>>>> sum =
+						new ReduceFunction<Tuple2<Long, HashSet<Vertex<Long, Long>>>>() {
+					@Override
+					public Tuple2<Long, HashSet<Vertex<Long, Long>>> reduce(
+							Tuple2<Long, HashSet<Vertex<Long, Long>>> arg0,
+							Tuple2<Long, HashSet<Vertex<Long, Long>>> arg1) throws Exception {
+
+						HashSet<Vertex<Long, Long>> result = new HashSet<Vertex<Long, Long>>();
+
+						result.addAll(arg0.f1);
+						result.addAll(arg1.f1);
+
+						return new Tuple2<Long, HashSet<Vertex<Long, Long>>>(arg0.f0, result);
+					}
+				};
+
+				FlatJoinFunction<Tuple2<Long,HashSet<Vertex<Long,Long>>>,
+						Vertex<Long,Long>, Vertex<Long, Long>> apply =
+						new FlatJoinFunction<Tuple2<Long,HashSet<Vertex<Long,Long>>>,
+						Vertex<Long,Long>, Vertex<Long, Long>>() {
+					@Override
+					public void join(Tuple2<Long, HashSet<Vertex<Long, Long>>> set,
+									 Vertex<Long, Long> src, Collector<Vertex<Long, Long>> collector)
+							throws Exception {
+
+						// Find the minimum vertex id in the set which will be propagated
+						long minValue = src.getValue();
+						for (Vertex<Long, Long> v : set.f1) {
+							if (v.getValue() < minValue) {
+								minValue = v.getValue();
+							}
+						}
+
+						if (minValue != src.getValue()) {
+							collector.collect(new Vertex<Long, Long>(src.getId(), minValue));
+						}
+					}
+				};
+
+				Graph<Long, Long, Long> minColoring = graph.gsa(gather, sum, apply, 16);
+				minColoring.getVertices().writeAsCsv(resultPath);
+
 				env.execute();
 
 				return
 					"1,1\n" +
-					"2,2\n" +
-					"3,3\n" +
-					"4,4\n" +
-					"5,5\n";
+					"2,1\n" +
+					"3,1\n" +
+					"4,1\n" +
+					"5,1\n";
 			}
 			default: 
 				throw new IllegalArgumentException("Invalid program id");

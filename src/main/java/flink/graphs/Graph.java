@@ -19,18 +19,9 @@
 package flink.graphs;
 
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
-import org.apache.flink.api.common.functions.CoGroupFunction;
-import org.apache.flink.api.common.functions.FilterFunction;
-import org.apache.flink.api.common.functions.FlatJoinFunction;
-import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.common.functions.GroupReduceFunction;
-import org.apache.flink.api.common.functions.JoinFunction;
-import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.common.operators.base.JoinOperatorBase.JoinHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.DataSet;
@@ -1319,6 +1310,77 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 		public TypeInformation<T> getProducedType() {
 			return TypeExtractor.createTypeInfo(NeighborsFunctionWithVertexValue.class, 
 							function.getClass(), 3, null, null);
+		}
+	}
+
+	public <MO> Graph<K, VV, EV> gsa (
+			MapFunction<Tuple3<Vertex<K, VV>, Edge<K, EV>, Vertex<K, VV>>, Tuple2<K, MO>> gather,
+			ReduceFunction<Tuple2<K, MO>> sum,
+			FlatJoinFunction<Tuple2<K, MO>, Vertex<K, VV>, Vertex<K, VV>> apply,
+			int maxIterations) {
+
+		DeltaIteration<Vertex<K, VV>, Vertex<K, VV>> iteration =
+				this.getVertices().iterateDelta(this.getVertices(), maxIterations, 0);
+
+		DataSet<Tuple3<Vertex<K, VV>, Edge<K, EV>, Vertex<K, VV>>> triplets = this
+				.getVertices()
+				.join(this.getEdges()
+						.join(iteration.getWorkset())
+						.where(1)
+						.equalTo(0))
+				.where(0)
+				.equalTo("f0.f0")
+				.with(new TripletJoinFunction<K, VV, EV>());
+
+		DataSet<Tuple2<K, MO>> gatheredSet = triplets.map(gather);
+		DataSet<Tuple2<K, MO>> summedSet = gatheredSet.groupBy(0).reduce(sum);
+		DataSet<Vertex<K, VV>> appliedSet = summedSet
+				.join(this.getVertices())
+				.where(0)
+				.equalTo(0)
+				.with(apply);
+
+		DataSet<Tuple2<K, VV>> result =
+				iteration.closeWith(appliedSet, appliedSet).map(new VertexToTupleMap<K, VV>());
+
+		return this.joinWithVertices(result, new ProjectTupleFieldMap<VV>(1));
+
+	}
+
+	private static final class TripletJoinFunction<K extends Comparable<K> & Serializable, VV extends Serializable,
+			EV extends Serializable> implements FlatJoinFunction<Vertex<K, VV>, Tuple2<Edge<K, EV>, Vertex<K, VV>>,
+			Tuple3<Vertex<K, VV>, Edge<K, EV>, Vertex<K, VV>>> {
+		@Override
+		public void join(Vertex<K, VV> vertex, Tuple2<Edge<K, EV>, Vertex<K, VV>>
+				edgeVertex, Collector<Tuple3<Vertex<K, VV>, Edge<K, EV>,
+				Vertex<K, VV>>> collector) throws Exception {
+
+			collector.collect(new Tuple3<Vertex<K, VV>, Edge<K, EV>, Vertex<K, VV>>(
+					vertex, edgeVertex.f0, edgeVertex.f1
+			));
+		}
+	}
+
+	private static final class VertexToTupleMap<K extends Comparable<K> & Serializable, VV extends Serializable>
+			implements MapFunction<Vertex<K, VV>, Tuple2<K, VV>> {
+		@Override
+		public Tuple2<K, VV> map(Vertex<K, VV> vertex) throws Exception {
+			return new Tuple2<K, VV>(vertex.getId(), vertex.getValue());
+		}
+	}
+
+	private static final class ProjectTupleFieldMap<VV extends Serializable>
+		implements MapFunction<Tuple2<VV, VV>, VV> {
+
+		private int field;
+
+		public ProjectTupleFieldMap(int field) {
+			this.field = field;
+		}
+
+		@Override
+		public VV map(Tuple2<VV, VV> tuple) throws Exception {
+			return tuple.getField(field);
 		}
 	}
 }
