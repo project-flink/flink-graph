@@ -1322,14 +1322,15 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 		DeltaIteration<Vertex<K, VV>, Vertex<K, VV>> iteration =
 				this.getVertices().iterateDelta(this.getVertices(), maxIterations, 0);
 
-		DataSet<Tuple3<Vertex<K, VV>, Edge<K, EV>, Vertex<K, VV>>> triplets = this
-				.getVertices()
+		DataSet<Tuple3<Vertex<K, VV>, Edge<K, EV>, Vertex<K, VV>>> triplets = iteration
+				.getSolutionSet()
 				.join(this.getEdges()
 						.join(iteration.getWorkset())
 						.where(1)
-						.equalTo(0))
+						.equalTo(0)
+						.with(new PairJoinFunction<K, VV, EV>()))
 				.where(0)
-				.equalTo("f0.f0")
+				.equalTo(0)
 				.with(new TripletJoinFunction<K, VV, EV>());
 
 		DataSet<Tuple2<K, MO>> gatheredSet = triplets.map(gather);
@@ -1347,16 +1348,27 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 
 	}
 
+	private static final class PairJoinFunction<K extends Comparable<K> & Serializable, VV extends Serializable,
+			EV extends Serializable> implements FlatJoinFunction<Edge<K, EV>, Vertex<K, VV>,
+			Tuple3<K, Edge<K, EV>, Vertex<K, VV>>> {
+
+		@Override
+		public void join(Edge<K, EV> edge, Vertex<K, VV> vertex,
+						 Collector<Tuple3<K, Edge<K, EV>, Vertex<K, VV>>> collector) throws Exception {
+			collector.collect(new Tuple3<K, Edge<K, EV>, Vertex<K, VV>>(edge.getSource(), edge, vertex));
+		}
+	}
+
 	private static final class TripletJoinFunction<K extends Comparable<K> & Serializable, VV extends Serializable,
-			EV extends Serializable> implements FlatJoinFunction<Vertex<K, VV>, Tuple2<Edge<K, EV>, Vertex<K, VV>>,
+			EV extends Serializable> implements FlatJoinFunction<Vertex<K, VV>, Tuple3<K, Edge<K, EV>, Vertex<K, VV>>,
 			Tuple3<Vertex<K, VV>, Edge<K, EV>, Vertex<K, VV>>> {
 		@Override
-		public void join(Vertex<K, VV> vertex, Tuple2<Edge<K, EV>, Vertex<K, VV>>
+		public void join(Vertex<K, VV> vertex, Tuple3<K, Edge<K, EV>, Vertex<K, VV>>
 				edgeVertex, Collector<Tuple3<Vertex<K, VV>, Edge<K, EV>,
 				Vertex<K, VV>>> collector) throws Exception {
 
 			collector.collect(new Tuple3<Vertex<K, VV>, Edge<K, EV>, Vertex<K, VV>>(
-					vertex, edgeVertex.f0, edgeVertex.f1
+					vertex, edgeVertex.f1, edgeVertex.f2
 			));
 		}
 	}
