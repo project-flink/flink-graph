@@ -1,5 +1,8 @@
 package flink.graphs;
 
+import flink.graphs.gsa.ApplyFunction;
+import flink.graphs.gsa.GatherFunction;
+import flink.graphs.gsa.SumFunction;
 import org.apache.flink.api.common.functions.FlatJoinFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
@@ -81,15 +84,12 @@ public class TestGSA extends JavaProgramTestBase {
 				Graph<Long, Long, Long> graph = Graph.fromDataSet(TestGraphUtils.getLongLongVertexData(env),
 						TestGraphUtils.getLongLongEdgeData(env), env);
 
-				MapFunction<Tuple3<Vertex<Long, Long>, Edge<Long, Long>, Vertex<Long, Long>>,
-						Tuple2<Long, HashSet<Vertex<Long, Long>>>> gather =
-						new MapFunction<Tuple3<Vertex<Long, Long>, Edge<Long, Long>, Vertex<Long, Long>>,
-						Tuple2<Long, HashSet<Vertex<Long, Long>>>>() {
+				GatherFunction<Long, Long, Long, HashSet<Vertex<Long,Long>>> gather =
+						new GatherFunction<Long, Long, Long, HashSet<Vertex<Long,Long>>>() {
 
 					@Override
-					public Tuple2<Long, HashSet<Vertex<Long, Long>>> map(Tuple3<Vertex<Long, Long>,
-							Edge<Long, Long>, Vertex<Long, Long>> triplet)
-							throws Exception {
+					public Tuple2<Long, HashSet<Vertex<Long, Long>>> gather(Tuple3<Vertex<Long, Long>,
+							Edge<Long, Long>, Vertex<Long, Long>> triplet) {
 
 						HashSet<Vertex<Long, Long>> result = new HashSet<Vertex<Long, Long>>();
 						result.add(triplet.f2);
@@ -98,12 +98,13 @@ public class TestGSA extends JavaProgramTestBase {
 					}
 				};
 
-				ReduceFunction<Tuple2<Long, HashSet<Vertex<Long, Long>>>> sum =
-						new ReduceFunction<Tuple2<Long, HashSet<Vertex<Long, Long>>>>() {
+				SumFunction<Long, Long, Long, HashSet<Vertex<Long, Long>>> sum =
+						new SumFunction<Long, Long, Long, HashSet<Vertex<Long, Long>>>() {
+
 					@Override
-					public Tuple2<Long, HashSet<Vertex<Long, Long>>> reduce(
+					public Tuple2<Long, HashSet<Vertex<Long, Long>>> sum(
 							Tuple2<Long, HashSet<Vertex<Long, Long>>> arg0,
-							Tuple2<Long, HashSet<Vertex<Long, Long>>> arg1) throws Exception {
+							Tuple2<Long, HashSet<Vertex<Long, Long>>> arg1) {
 
 						HashSet<Vertex<Long, Long>> result = new HashSet<Vertex<Long, Long>>();
 
@@ -114,14 +115,12 @@ public class TestGSA extends JavaProgramTestBase {
 					}
 				};
 
-				FlatJoinFunction<Tuple2<Long,HashSet<Vertex<Long,Long>>>,
-						Vertex<Long,Long>, Vertex<Long, Long>> apply =
-						new FlatJoinFunction<Tuple2<Long,HashSet<Vertex<Long,Long>>>,
-						Vertex<Long,Long>, Vertex<Long, Long>>() {
+				ApplyFunction<Long, Long, Long, HashSet<Vertex<Long, Long>>> apply =
+						new ApplyFunction<Long, Long, Long, HashSet<Vertex<Long, Long>>>() {
+
 					@Override
-					public void join(Tuple2<Long, HashSet<Vertex<Long, Long>>> set,
-									 Vertex<Long, Long> src, Collector<Vertex<Long, Long>> collector)
-							throws Exception {
+					public void apply(Tuple2<Long, HashSet<Vertex<Long, Long>>> set,
+									 Vertex<Long, Long> src, Collector<Vertex<Long, Long>> collector) {
 
 						// Find the minimum vertex id in the set which will be propagated
 						long minValue = src.getValue();
