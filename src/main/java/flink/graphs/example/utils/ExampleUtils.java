@@ -132,42 +132,5 @@ public class ExampleUtils {
 		return env.fromCollection(edges);
 	}
 
-	public static final DataSet<Vertex<Long, String>> getLongStringVertexDataMST(
-			ExecutionEnvironment env) {
-		List<Vertex<Long, String>> vertices = new ArrayList<>();
-		vertices.add(new Vertex<Long, String>(1L, "A"));
-		vertices.add(new Vertex<Long, String>(2L, "B"));
-		vertices.add(new Vertex<Long, String>(3L, "C"));
-		vertices.add(new Vertex<Long, String>(4L, "D"));
-		vertices.add(new Vertex<Long, String>(5L, "E"));
-		vertices.add(new Vertex<Long, String>(6L, "F"));
-		vertices.add(new Vertex<Long, String>(7L, "G"));
-		vertices.add(new Vertex<Long, String>(8L, "H"));
-		vertices.add(new Vertex<Long, String>(9L, "I"));
-		vertices.add(new Vertex<Long, String>(10L, "J"));
-
-		return env.fromCollection(vertices);
-	}
-
-	public static final DataSet<Edge<Long, Double>> getLongDoubleEdgeDataMST(
-			ExecutionEnvironment env) {
-		List<Edge<Long, Double>> edges = new ArrayList<>();
-		edges.add(new Edge<Long, Double>(1L, 2L, 9.0));
-		edges.add(new Edge<Long, Double>(1L, 4L, 2.0));
-		edges.add(new Edge<Long, Double>(1L, 6L, 1.0));
-		edges.add(new Edge<Long, Double>(2L, 3L, 3.0));
-		edges.add(new Edge<Long, Double>(2L, 4L, 8.0));
-		edges.add(new Edge<Long, Double>(3L, 5L, 7.0));
-		edges.add(new Edge<Long, Double>(4L, 5L, 12.0));
-		edges.add(new Edge<Long, Double>(4L, 6L, 13.0));
-		edges.add(new Edge<Long, Double>(4L, 7L, 5.0));
-		edges.add(new Edge<Long, Double>(5L, 7L, 14.0));
-		edges.add(new Edge<Long, Double>(5L, 8L, 6.0));
-		edges.add(new Edge<Long, Double>(6L, 7L, 10.0));
-		edges.add(new Edge<Long, Double>(7L, 8L, 15.0));
-		edges.add(new Edge<Long, Double>(9L, 10L, 4.0));
-
-		return env.fromCollection(edges);
-	}
 }
 
