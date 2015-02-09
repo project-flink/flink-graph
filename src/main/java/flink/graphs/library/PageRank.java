@@ -5,6 +5,7 @@ import flink.graphs.Graph;
 import flink.graphs.GraphAlgorithm;
 import flink.graphs.spargel.MessageIterator;
 import flink.graphs.spargel.MessagingFunction;
+import flink.graphs.spargel.VertexCentricIteration;
 import flink.graphs.spargel.VertexUpdateFunction;
 
 import java.io.Serializable;
@@ -23,11 +24,13 @@ public class PageRank<K extends Comparable<K> & Serializable> implements GraphAl
 
     @Override
     public Graph<K, Double, Double> run(Graph<K, Double, Double> network) {
-        return network.runVertexCentricIteration(
+        VertexCentricIteration<K, Double, Double, Double> iteration =  network.createVertexCentricIteration(
                 new VertexRankUpdater<K>(numVertices, beta),
                 new RankMessenger<K>(),
                 maxIterations
         );
+        
+        return network.runVertexCentricIteration(iteration);
     }
 
 

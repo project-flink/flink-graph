@@ -3,6 +3,7 @@ package flink.graphs.library;
 import flink.graphs.*;
 import flink.graphs.spargel.MessageIterator;
 import flink.graphs.spargel.MessagingFunction;
+import flink.graphs.spargel.VertexCentricIteration;
 import flink.graphs.spargel.VertexUpdateFunction;
 
 import org.apache.flink.types.NullValue;
@@ -35,11 +36,13 @@ public class LabelPropagation<K extends Comparable<K> & Serializable> implements
 
     	// iteratively adopt the most frequent label among the neighbors
     	// of each vertex
-    	return input.runVertexCentricIteration(
+        VertexCentricIteration<K, Long, Long, NullValue> iteration = input.createVertexCentricIteration(
                 new UpdateVertexLabel<K>(),
                 new SendNewLabelToNeighbors<K>(),
                 maxIterations
         );
+        
+        return input.runVertexCentricIteration(iteration);
     }
 
     /**
