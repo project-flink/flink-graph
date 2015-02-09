@@ -3,6 +3,7 @@ package flink.graphs.library;
 import flink.graphs.*;
 import flink.graphs.spargel.MessageIterator;
 import flink.graphs.spargel.MessagingFunction;
+import flink.graphs.spargel.VertexCentricIteration;
 import flink.graphs.spargel.VertexUpdateFunction;
 
 import org.apache.flink.api.common.functions.MapFunction;
@@ -23,12 +24,12 @@ public class SingleSourceShortestPaths<K extends Comparable<K> & Serializable> i
     @Override
     public Graph<K, Double, Double> run(Graph<K, Double, Double> input) {
 
-    	return input.mapVertices(new InitVerticesMapper<K>(srcVertexId))
-    			.runVertexCentricIteration(
-                new VertexDistanceUpdater<K>(),
-                new MinDistanceMessenger<K>(),
-                maxIterations
-        );
+        VertexCentricIteration<K, Double, Double, Double> iteration = input
+                .mapVertices(new InitVerticesMapper<K>(srcVertexId))
+                .createVertexCentricIteration(new VertexDistanceUpdater<K>(),
+                        new MinDistanceMessenger<K>(), maxIterations);
+        
+        return input.runVertexCentricIteration(iteration);
     }
 
     public static final class InitVerticesMapper<K extends Comparable<K> & Serializable> 

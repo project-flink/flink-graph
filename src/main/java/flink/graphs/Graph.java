@@ -1105,20 +1105,30 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
         DataSet<Edge<K,EV>> unionedEdges = graph.getEdges().union(this.getEdges());
         return new Graph<K,VV,EV>(unionedVertices, unionedEdges, this.context);
     }
+    
+    /**
+     * Returns a Vertex-Centric iteration object.
+     * @param vertexUpdateFunction the vertex update function
+     * @param messagingFunction the messaging function
+     * @param maximumNumberOfIterations maximum number of iterations to perform
+     * @return
+     */
+    public <M> VertexCentricIteration<K, VV, M, EV> createVertexCentricIteration(
+            VertexUpdateFunction<K, VV, M> vertexUpdateFunction,
+            MessagingFunction<K, VV, M, EV> messagingFunction,
+            int maximumNumberOfIterations) {
+        return VertexCentricIteration.withEdges(edges, vertexUpdateFunction,
+                messagingFunction, maximumNumberOfIterations);
+    }
 
-	/**
-	 * Runs a Vertex-Centric iteration on the graph.
-	 * @param vertexUpdateFunction the vertex update function
-	 * @param messagingFunction the messaging function
-	 * @param maximumNumberOfIterations maximum number of iterations to perform
-	 * @return
-	 */
-	public <M>Graph<K, VV, EV> runVertexCentricIteration(VertexUpdateFunction<K, VV, M> vertexUpdateFunction,
-    		MessagingFunction<K, VV, M, EV> messagingFunction, int maximumNumberOfIterations) {
-    	DataSet<Vertex<K, VV>> newVertices = vertices.runOperation(
-    	                     VertexCentricIteration.withEdges(edges,
-						vertexUpdateFunction, messagingFunction, maximumNumberOfIterations));
-		return new Graph<K, VV, EV>(newVertices, this.edges, this.context);
+    /**
+     * Runs a Vertex-Centric iteration on the graph.
+     * @param iteration the Vertex-Centric iteration object to run  
+     * @return
+     */
+    public <M>Graph<K, VV, EV> runVertexCentricIteration(VertexCentricIteration<K, VV, M, EV> iteration) {
+        DataSet<Vertex<K, VV>> newVertices = vertices.runOperation(iteration);
+        return new Graph<K, VV, EV>(newVertices, this.edges, this.context);
     }
 
 	public Graph<K, VV, EV> run (GraphAlgorithm<K, VV, EV> algorithm) {
