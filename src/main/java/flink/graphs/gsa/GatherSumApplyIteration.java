@@ -21,19 +21,40 @@ package flink.graphs.gsa;
 import flink.graphs.Edge;
 import flink.graphs.Vertex;
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.java.DataSet;
+import org.apache.flink.api.java.operators.CustomUnaryOperation;
+import org.apache.flink.api.java.operators.DeltaIteration;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 
 import java.io.Serializable;
 
-public abstract class GatherSumApplyIteration<K extends Comparable<K> & Serializable, VV extends Serializable,
-        EV extends Serializable, MO extends Serializable> implements
-        MapFunction<Tuple3<Vertex<K, VV>, Edge<K, EV>, Vertex<K, VV>>, Tuple2<K, MO>> {
+public abstract class GatherSumApplyIteration<VertexKey extends Comparable<VertexKey> & Serializable,
+        VertexValue extends Serializable> implements CustomUnaryOperation<Vertex<VertexKey, VertexValue>,
+        Vertex<VertexKey, VertexValue>> {
 
-    public abstract Tuple2<K, MO> gather(Tuple3<Vertex<K, VV>, Edge<K, EV>, Vertex<K, VV>> triplet);
+    private DataSet<Vertex<VertexKey, VertexValue>> dataSet;
+    private final int maximumNumberOfIterations;
+
+    public GatherSumApplyIteration(int maxIterations) {
+        this.maximumNumberOfIterations = maxIterations;
+    }
 
     @Override
-    public Tuple2<K, MO> map(Tuple3<Vertex<K, VV>, Edge<K, EV>, Vertex<K, VV>> triplet) throws Exception {
-        return gather(triplet);
+    public void setInput(DataSet<Vertex<VertexKey, VertexValue>> dataSet) {
+        this.dataSet = dataSet;
+    }
+
+    @Override
+    public DataSet<Vertex<VertexKey, VertexValue>> createResult() {
+        if (dataSet == null) {
+            throw new IllegalStateException("The input data set has not been set.");
+        }
+
+        final int[] zeroKeyPos = new int[] {0};
+        final DeltaIteration<Vertex<VertexKey, VertexValue>, Vertex<VertexKey, VertexValue>> iteration =
+                dataSet.iterateDelta(dataSet, maximumNumberOfIterations, zeroKeyPos);
+
+        return null;
     }
 }

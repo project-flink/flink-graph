@@ -23,6 +23,7 @@ import java.util.*;
 
 import flink.graphs.gsa.ApplyFunction;
 import flink.graphs.gsa.GatherFunction;
+import flink.graphs.gsa.GatherSumApplyIteration;
 import flink.graphs.gsa.SumFunction;
 import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.common.operators.base.JoinOperatorBase.JoinHint;
@@ -1316,7 +1317,7 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 		}
 	}
 
-	public <MO extends Serializable> Graph<K, VV, EV> gsa (
+	public <MO extends Serializable> Graph<K, VV, EV> runGSAIteration(
 			GatherFunction<K, VV, EV, MO> gather,
 			SumFunction<K, VV, EV, MO> sum,
 			ApplyFunction<K, VV, EV, MO> apply,

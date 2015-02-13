@@ -3,13 +3,7 @@ package flink.graphs;
 import flink.graphs.gsa.ApplyFunction;
 import flink.graphs.gsa.GatherFunction;
 import flink.graphs.gsa.SumFunction;
-import org.apache.flink.api.common.functions.FlatJoinFunction;
-import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.common.functions.ReduceFunction;
-import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.operators.DeltaIteration;
-import org.apache.flink.api.java.operators.JoinOperator;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.configuration.Configuration;
@@ -18,8 +12,6 @@ import org.apache.flink.util.Collector;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import scala.collection.GenTraversableViewLike;
-import scala.collection.parallel.ParIterableLike;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -136,7 +128,7 @@ public class TestGSA extends JavaProgramTestBase {
 					}
 				};
 
-				Graph<Long, Long, Long> minColoring = graph.gsa(gather, sum, apply, 16);
+				Graph<Long, Long, Long> minColoring = graph.runGSAIteration(gather, sum, apply, 16);
 				minColoring.getVertices().writeAsCsv(resultPath);
 
 				env.execute();
